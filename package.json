@@ -1,0 +1,21 @@
+{
+	"name": "utahscientific-bpspanel",
+	"version": "1.0.0",
+	"api_version": "1.0.0",
+	"keywords": [
+		"Router",
+		"Matrix",
+		"Broadcast",
+		"Production"
+	],
+	"manufacturer": "Utah Scientific",
+	"product": "BPS Panel",
+	"shortname": "bps panel",
+	"description": "Utah scientific BPS Panel",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+  "author": "Utah Scientific",
+  "license": "ISC"
+}
