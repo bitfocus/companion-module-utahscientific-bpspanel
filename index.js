@@ -199,6 +199,8 @@ instance.prototype.setupPresetList= function ()
 	console.log(self.config.label + "::setupPresetList")
 	self.initPresets()
 	self.updateVariableDefinitions()
+	self.setupFeedbacks()
+	self.actions()
 }
 
 instance.prototype.doSC4init= function () 
