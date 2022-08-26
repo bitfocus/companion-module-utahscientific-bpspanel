@@ -78,8 +78,7 @@ instance.prototype.setupVariables = function () {
 	self.selected_level = []
 	self.selected_dest = -1
 	self.selected_source = -1
-	self.selected_routed_source=-1
-	self.selected_routed_source_str=""
+	
 
 	if (self.routerTablemap == undefined)
 		self.routerTablemap = new Map()
@@ -168,6 +167,7 @@ instance.prototype.doStatusUpdate= function (src, dst)
 instance.prototype.setupDstList= function () 
 {
 	var self=this
+	self.dest_names=[]
 	self.dst_nameidmap.forEach(( value, key) => 
 	{
 		self.dest_names.push ({label:key, id:value })
@@ -182,6 +182,7 @@ instance.prototype.setupDstList= function ()
 instance.prototype.setupSrcList= function () 
 {
 	var self=this
+	self.source_names=[]
 	self.src_nameidmap.forEach(( value, key) => 
 	{
 		self.source_names.push ({label:key, id:value})
@@ -688,15 +689,34 @@ instance.prototype.feedback = function (feedback, bank) {
 				if(self.router_statusmap.has(self.selected_dest))
 				{
 					var levels=self.router_statusmap.get(self.selected_dest)
+					var firstActive=-1;
 					for (i in levels)
 					{
-						if(levels[i]===feedback.options.source)
-							return true;
+						if(levels[i]>-1) //active
+						{
+							if(firstActive==-1)
+							{
+								firstActive=i;
+								
+								break;
+							}
+						}
 					}
+					if(firstActive>-1 )
+					{
+						if(levels[firstActive]===feedback.options.source)
+						{
+							return true;
+						} 
+						else{
+							return false
+						}
+					} 
+				    else{ return false;
+						}
 				}
 			}
 			return false
-			break
 		}
 	}
 }
