@@ -375,10 +375,11 @@ instance.prototype.parseMatrixInfo = function (d)
 	
 	var bit = 0x01
 
-	var levels = new Int32Array(16)
+	var levels = self.router_statusmap.get(dst)
+	//var levels = new Int32Array(16)
 	for (var j = 0; j < 16; j++, bit <<= 1)
 	{
-		levels[j] = 0xFFFFFFFF
+		//levels[j] = 0xFFFFFFFF
 		if (lev & bit)
 			levels[j] = src 
 	}
