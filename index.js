@@ -309,7 +309,17 @@ instance.prototype.parseDevInfo = function (d)
 	{
 		self.dstCount ++
 		self.dst_nameidmap.set(devName, devIdx)
-		self.dst_idinfomap.set(devIdx, {name: devName, levels: levels})
+		var levActive=-1;
+		for(var i=0; i<16; i++)
+		{
+			if(levels[i]>-1)
+			{
+				levActive=i;
+				break;
+			}
+		}
+
+		self.dst_idinfomap.set(devIdx, {name: devName, levels: levels, levActive:levActive})
 	}
 	else
 	{
@@ -372,17 +382,29 @@ instance.prototype.parseMatrixInfo = function (d)
 	var src = (d[0] << 8) + d[1]
 	var dst = (d[2] << 8) + d[3]
 	var lev = (d[4] << 24) + (d[5] << 16) + (d[6] << 8) + d[7]
-	
-	var bit = 0x01
 
-	var levels = self.router_statusmap.get(dst)
-	//var levels = new Int32Array(16)
-	for (var j = 0; j < 16; j++, bit <<= 1)
+	var levels=self.router_statusmap.get(dst)
+	var bit = 0x01
+	/*var slevels=self.src_idinfomap.get(src).levels
+	
+	if (lev==0)  //VE  set all levels to blank that matched the levels in the src.  this is the case of status after disconnect
 	{
-		//levels[j] = 0xFFFFFFFF
-		if (lev & bit)
-			levels[j] = src 
+		for (var j = 0; j < 16; j++)
+		{
+			if(levels[j] > -1 && slevels[j] > -1)	
+			{
+				levels[j]=0xFFFFFFFF
+			}
+		}
 	}
+	else{*/
+
+		for (var j = 0; j < 16; j++, bit <<= 1)
+		{
+			if (lev & bit)
+				levels[j] = src 
+		} 
+	//}
 	
 	self.router_statusmap.set(dst, levels)
 	self.doStatusUpdate(src, dst)
@@ -404,6 +426,10 @@ instance.prototype.parseMatrixDump = function (d)
 		for (var j = 0; j < 32; j++)
 		{
 			levels[j] = (d[pos] << 8) + d[pos+1]	
+			if(levels[j]==4095)
+			{
+				levels[j]=0xffffffff
+			}
 			pos += 2		
 		}
 		self.router_statusmap.set(idx, levels)
@@ -690,19 +716,8 @@ instance.prototype.feedback = function (feedback, bank) {
 				if(self.router_statusmap.has(self.selected_dest))
 				{
 					var levels=self.router_statusmap.get(self.selected_dest)
-					var firstActive=-1;
-					for (i in levels)
-					{
-						if(levels[i]>-1) //active
-						{
-							if(firstActive==-1)
-							{
-								firstActive=i;
-								
-								break;
-							}
-						}
-					}
+					var firstActive= self.dst_idinfomap.get(self.selected_dest).levActive
+				
 					if(firstActive>-1 )
 					{
 						if(levels[firstActive]===feedback.options.source)
