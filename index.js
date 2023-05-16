@@ -5,6 +5,7 @@
 var tcp = require('../../tcp')
 var instance_skel = require('../../instance_skel')
 const { each } = require('lodash')
+const { parseVariablesInString } = require('../../lib/variable')
 
 var debug
 var log
@@ -98,6 +99,7 @@ instance.prototype.setupVariables = function () {
 instance.prototype.updateVariableDefinitions = function () {
 	var self = this
 	var coreVariables = []
+	//var variableValues= []
 
 	self.setVariable('Sources', self.source_names.length)
 	self.setVariable('Destinations', self.dest_names.length)
@@ -124,8 +126,9 @@ instance.prototype.updateVariableDefinitions = function () {
 	for (var i = 0; i < Object.keys(self.source_names).length; i++) {
 		coreVariables.push({
 			label: 'Source ' + i.toString(),
-			name: 'Source_' + i.toString(),
+			name: 'Source_' + i.toString(), //self.source_names[i].label, // 'Source_' + i.toString(), 
 		})
+		self.setVariable('Source_' + i.toString(),self.source_names[i].label	) //variableValues['Source_' + i.toString()] = self.source_names[i].label	
 	}
 
 	for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
@@ -133,10 +136,40 @@ instance.prototype.updateVariableDefinitions = function () {
 			label: 'Destination ' + i.toString(),
 			name: 'Destination_' + i.toString(),
 		})
+		self.setVariable('Destination_' + i.toString(), self.dest_names[i].label) //variableValues['Destination_' + i.toString()] = self.dest_names[i].label	
+	} 
+
+	/*for (const input of state.iterateInputs()) {
+		if (input.status != 'None') {
+			variableDefinitions.push({
+				name: `Label of input ${input.id + 1}`,
+				variableId: `input_${input.id + 1}`,
+			})
+
+			variableValues[`input_${input.id + 1}`] = input.name
+		}
 	}
 
-	self.setVariableDefinitions(coreVariables)
+	for (const output of state.iterateAllOutputs()) {
+		if (output.status != 'None') {
+			variableDefinitions.push({
+				name: `Label of output ${output.id + 1}`,
+				variableId: `output_${output.id + 1}`,
+			})
 
+			variableValues[`output_${output.id + 1}`] = output.name
+
+			variableDefinitions.push({
+				name: `Label of input routed to output ${output.id + 1}`,
+				variableId: `output_${output.id + 1}_input`,
+			})
+
+			variableValues[`output_${output.id + 1}_input`] = state.getInput(output.route)?.name ?? '?'
+		}
+	}*/
+
+	self.setVariableDefinitions(coreVariables)
+	
 	// var labelDump = {}
 
 	// for (var i = 0; i < Object.keys(self.source_names).length; i++) {
@@ -409,6 +442,7 @@ instance.prototype.parseMatrixInfo = function (d)
 	self.router_statusmap.set(dst, levels)
 	self.doStatusUpdate(src, dst)
 	self.checkFeedbacks('source_dest_route')
+	self.checkFeedbacks('combo_bg')
 
 }
 
@@ -437,6 +471,7 @@ instance.prototype.parseMatrixDump = function (d)
 	self.statusCount += numOut
 	//console.log("startOut: " + startOut + ", numOut: " + numOut)
 	self.checkFeedbacks('source_dest_route')
+	self.checkFeedbacks('combo_bg')
 }
 
 instance.prototype.parseCommand_Unet = function (hdrcommand, dmsg) 
@@ -678,7 +713,46 @@ instance.prototype.setupFeedbacks = function (system) {
 				choices:self.source_names,
 			},
 		],
-	}
+	} 
+
+	feedbacks['combo_bg'] = {
+		type: 'boolean', //'advanced',
+		label: 'Change background color by destination',
+		description: 'If the set Source is in use by the set Destination, change background color of the button',
+		style: {
+			color: self.rgb(0, 0, 0),
+			bgcolor: self.rgb(64,64, 255),
+		},
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Source',
+				id: 'source',
+				default: 0,
+				choices: self.source_names,
+			},
+			{
+				type: 'dropdown',
+				label: 'Destination',
+				id: 'dest',
+				default: 0,
+				choices: self.dest_names,
+			},
+			/*{
+				type: 'colorpicker',
+				label: 'Foreground color',
+				id: 'fg',
+				default: combineRgb(0, 0, 0),
+			},
+			{
+				type: 'colorpicker',
+				label: 'Background color',
+				id: 'bg',
+				default: combineRgb(255, 255, 0),
+			},*/
+		],
+		
+	} 
 
 	self.setFeedbackDefinitions(feedbacks)
 }
@@ -722,18 +796,46 @@ instance.prototype.feedback = function (feedback, bank) {
 					{
 						if(levels[firstActive]===feedback.options.source)
 						{
-							return true;
+							return true
 						} 
 						else{
 							return false
 						}
 					} 
-				    else{ return false;
+				    else{ return false
 						}
 				}
 			}
 			return false
+		} 
+
+		case 'combo_bg': {
+			console.log('---------------------------------feedback:combo_bg: set_dest: ' + feedback.options.dest + ':' + feedback.options.source)
+			if(feedback.options.dest>-1)
+			{
+				if(self.router_statusmap.has(feedback.options.dest))
+				{
+					var levels=self.router_statusmap.get(feedback.options.dest)
+					var firstActive= self.dst_idinfomap.get(self.selected_dest).levActive
+					if(levels[firstActive]===feedback.options.source)
+					{
+						return  true
+					} 
+					else {
+						return false//{}
+					}
+						
+				} 
+				else {
+					return false //{}
+				} 
+			}
+			else{
+				return false//{}
+			}
+			
 		}
+
 	}
 }
 
@@ -741,14 +843,19 @@ instance.prototype.initPresets = function () {
 	var self = this
 	var presets = []
 
-	for( var i=0; i<Object.keys(self.source_names).length; i++) { 
+	//self.setVariable('Source_' + i.toString(),self.source_names[i].label	) 
 	
+	
+
+	for( var i=0; i<Object.keys(self.source_names).length; i++) { 
+		var s='Source_' + i
+		var srcname='$(' + self.label +':'+ s + ')'
 		presets.push({
 			category: 'Sources (by name)',
 			label: 'Source ' + i,
 			bank: {
 				style: 'text',
-				text: self.source_names[i].label,
+				text: srcname, //self.source_names[i].label, 
 				size: '14',
 				color: self.rgb(255, 255, 255),
 				bgcolor: self.rgb(0, 0, 0),
@@ -786,12 +893,14 @@ instance.prototype.initPresets = function () {
 		})
 	}
 	for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
+		var s='Destination_' + i
+		var dstname='$(' + self.label +':'+ s + ')'
 		presets.push({
 			category: 'Destinations (by name)',
 			label: 'Destination ' + i,
 			bank: {
 				style: 'text',
-				text: self.dest_names[i].label,
+				text: dstname, //self.dest_names[i].label,
 				size: '14',
 				color: self.rgb(255, 255, 255),
 				bgcolor: self.rgb(0, 0, 0),
@@ -818,6 +927,43 @@ instance.prototype.initPresets = function () {
 			],
 		})
 	}
+
+//VE 01/17/23
+//combo preset with actions needed for it
+	presets.push(
+		{
+			category: 'SinglePressTakeBtn',
+			label:'Combo Btn',
+			bank: {
+				style: 'text',
+				text: '',
+				size: '14',
+				color: self.rgb(255, 255, 255),
+				bgcolor: self.rgb(0, 0, 0),
+			},
+			actions: [
+				{
+					action: 'route',
+					options: {
+						//source: self.source_names[i].id,
+					},
+				},
+			],
+			feedbacks: [
+				{
+					type: 'combo_bg',
+					options: {
+						//source:  self.source_names[i].id,
+					},
+					style: {
+						color: self.rgb(0, 0, 0),
+						bgcolor: self.rgb(255, 255, 128),
+					},
+				},
+				
+			],
+		})
+
 
 	self.setPresetDefinitions(presets)
 }
@@ -853,11 +999,35 @@ instance.prototype.actions = function () {
 				},
 			],
 		},
+
+
+		route : {
+			label: 'Single Press Take Src to Dst',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Source',
+					id: 'source',
+					default: 0,
+					choices: self.source_names,
+				},
+				{
+					type: 'dropdown',
+					label: 'Destination',
+					id: 'destination',
+					
+					choices: self.dest_names,
+					default:0 ,//'Destination 0',// '',//0,//self.dest_names[0]?.id,
+				},
+			],
+			
+		},
 	})
 }
 
 instance.prototype.action = function (action) {
 	var self = this
+	var prev_dest=self.selected_dest
 
 	const opt = action.options
 
@@ -867,10 +1037,32 @@ instance.prototype.action = function (action) {
 		self.setVariable('Destination', self.selected_dest)
 		self.checkFeedbacks('selected_dest')
 		self.checkFeedbacks('source_dest_route')
+		self.checkFeedbacks('combo_bg')
 		return
 	}
 
 	if (action.action === 'select_source_name') {
+		self.selected_source = parseInt(opt.source)
+		console.log('set source TEST********** ' + self.selected_source)
+		self.setVariable('Source', self.selected_source)
+		self.checkFeedbacks('selected_source')
+		self.checkFeedbacks('combo_bg')
+		//VE check if we can send a take cmd
+		if(self.selected_dest>=0)
+		{
+			console.log('sending take cmd', self.selected_source, self.selected_dest)			
+			self.sendSingleTake(self.selected_source, self.selected_dest)
+			self.selected_source=-1
+		}
+		return
+	}
+	if (action.action === 'route') {
+		self.selected_dest = parseInt(opt.destination)
+		console.log('set destination ' + self.selected_dest)
+		self.setVariable('Destination', self.selected_dest)
+		self.checkFeedbacks('selected_dest')
+		self.checkFeedbacks('source_dest_route')
+	
 		self.selected_source = parseInt(opt.source)
 		console.log('set source TEST********** ' + self.selected_source)
 		self.setVariable('Source', self.selected_source)
@@ -881,7 +1073,10 @@ instance.prototype.action = function (action) {
 			console.log('sending take cmd', self.selected_source, self.selected_dest)			
 			self.sendSingleTake(self.selected_source, self.selected_dest)
 			self.selected_source=-1
+			//self.selected_dest=prev_dest
+			self.checkFeedbacks('combo_bg')
 		}
+
 		return
 	}
 	//action.internal.
