@@ -1,21 +1,20 @@
 {
 	"name": "utahscientific-bpspanel",
-	"version": "1.0.3",
-	"api_version": "1.0.0",
-	"keywords": [
-		"Router",
-		"Matrix",
-		"Broadcast",
-		"Production"
-	],
-	"manufacturer": "Utah Scientific",
-	"product": "BPS Panel",
-	"shortname": "bps panel",
-	"description": "Utah scientific BPS Panel",
+	"version": "2.0.0",
 	"main": "index.js",
+	"type": "module",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-  "author": "Utah Scientific",
-  "license": "ISC"
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-utahscientific-bpspanel.git"
+	},
+	"dependencies": {
+		"@companion-module/base": "~1.4.3"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "^1.3.2"
+	}
 }

@@ -1,2 +1,2 @@
 # companion-module-utahscientific-bpspanel
-See [HELP.md](./HELP.md) and [LICENSE](./LICENSE)
+See HELP.md and LICENSE

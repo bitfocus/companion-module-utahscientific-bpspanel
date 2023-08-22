@@ -1,60 +1,48 @@
 // Button per source panel (BPS)
 // Utah Scientific
 //
+import { InstanceBase, Regex, TCPHelper, combineRgb, runEntrypoint } from '@companion-module/base'
+//import { CompanionVariableValues } from '@companion-module/base'
 
-var tcp = require('../../tcp')
-var instance_skel = require('../../instance_skel')
-const { each } = require('lodash')
-const { parseVariablesInString } = require('../../lib/variable')
+class UtahScientificBps extends InstanceBase {
+	async configUpdated(config) {
+		let reconnect = this.config.host !== config.host || this.config.channel !== config.channel;
 
-var debug
-var log
+		this.config = config;
+		if (reconnect) {
+			this.init_tcp();
+		}
+    
+    this.setupVariables()
+	  this.setupFeedbacks()
+	  this.actions()
 
-function instance(system) {
-	var self = this
+	
+	}
 
-	// super-constructor
-	instance_skel.apply(this, arguments)
+	async init(config) {
+		this.log("init");
+		this.config = config;
 
-	self.actions()
+		this.awaiting_reply = false;
+		this.command_queue = [];
+		this.files = [];
+		this.last_bit_check = null;
+		this.current_transport_status = 'UNKNOWN';
+		this.setupVariables()
+		this.setupFeedbacks()
+		this.actions()
+	
+		//this.checkFeedbacks('selected_dest')
+		//this.checkFeedbacks('selected_source')
 
-	return self
-}
+		this.init_tcp()
+    
+	}
 
-instance.prototype.updateConfig = function (config) {
-	var self = this
-
-	console.log('update config')
-
-	self.config = config
-
-	self.setupVariables()
-	self.setupFeedbacks()
-	self.actions()
-
-	self.init_tcp()
-}
-
-instance.prototype.init = function () {
-	var self = this
-
-	debug = self.debug
-	log = self.log
-
-	self.setupVariables()
-	self.setupFeedbacks()
-	self.actions()
-	//self.initPresets()
-
-	self.checkFeedbacks('selected_dest')
-	self.checkFeedbacks('selected_source')
-
-	self.init_tcp()
-}
-
-instance.prototype.destroy = function () {
 	// When module gets deleted
-	var self = this
+	async destroy() {
+		var self = this
 
 	if (self.socket !== undefined) {
 		if (self.pingtimer != 0) {
@@ -64,10 +52,12 @@ instance.prototype.destroy = function () {
 		self.socket.destroy()
 	}
 
-	debug('destroy', self.id)
-}
+	self.log('debug','destroy ${self.id}')
+	}
 
-instance.prototype.setupVariables = function () {
+
+
+setupVariables() {
 	var self = this
 
 	// Implemented Commands
@@ -89,130 +79,95 @@ instance.prototype.setupVariables = function () {
 	self.dest_names = []
 	self.updateVariableDefinitions()
 
-	self.setVariable('Sources', 0)
-	self.setVariable('Destinations', 0)
-
-	self.setVariable('Source', self.selected_source)
-	self.setVariable('Destination', self.selected_dest)
+	self.setVariableValues({
+		Sources: 0,
+		Destinations: 0,
+		Source: self.selected_source,
+		Destination: self.selected_dest,
+	})
+	
 }
 
-instance.prototype.updateVariableDefinitions = function () {
+updateVariableDefinitions () {
 	var self = this
 	var coreVariables = []
-	//var variableValues= []
-
-	self.setVariable('Sources', self.source_names.length)
-	self.setVariable('Destinations', self.dest_names.length)
+	var variableValues = []
+	
+	self.setVariableValues({
+		Sources: self.source_names.length,
+		Destinations: self.dest_names.length,
+	})
 
 	coreVariables.push(
 		{
-			label: 'Number of source names returned by router',
-			name: 'Sources',
+			name: 'Number of source names returned by router XXX',
+			variableId: 'Sources',
 		},
 		{
-			label: 'Number of destination names returned by router',
-			name: 'Destinations',
+			name: 'Number of destination names returned by router',
+			variableId: 'Destinations',
 		},
 		{
-			label: 'Selected destination',
-			name: 'Destination',
+			name: 'Selected destination',
+			variableId: 'Destination',
 		},
 		{
-			label: 'Selected source',
-			name: 'Source',
+			name: 'Selected source',
+			variableId: 'Source',
 		}
 	)
 
+	//const variableValues: CompanionVariableValues = {}
 	for (var i = 0; i < Object.keys(self.source_names).length; i++) {
 		coreVariables.push({
-			label: 'Source ' + i.toString(),
-			name: 'Source_' + i.toString(), //self.source_names[i].label, // 'Source_' + i.toString(), 
+			name: 'Source ' + i.toString(),
+			variableId: 'Source_' + i.toString(), //self.source_names[i].label, // 'Source_' + i.toString(), 
 		})
-		self.setVariable('Source_' + i.toString(),self.source_names[i].label	) //variableValues['Source_' + i.toString()] = self.source_names[i].label	
+		variableValues[`Source_${i}`] = self.source_names[i].label
 	}
 
 	for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
 		coreVariables.push({
-			label: 'Destination ' + i.toString(),
-			name: 'Destination_' + i.toString(),
+			name: 'Destination ' + i.toString(),
+			variableId: 'Destination_' + i.toString(),
 		})
-		self.setVariable('Destination_' + i.toString(), self.dest_names[i].label) //variableValues['Destination_' + i.toString()] = self.dest_names[i].label	
+		var name='Destination_' + i.toString()
+		variableValues[`Destination_${i}`] = self.dest_names[i].label
 	} 
 
-	/*for (const input of state.iterateInputs()) {
-		if (input.status != 'None') {
-			variableDefinitions.push({
-				name: `Label of input ${input.id + 1}`,
-				variableId: `input_${input.id + 1}`,
-			})
-
-			variableValues[`input_${input.id + 1}`] = input.name
-		}
-	}
-
-	for (const output of state.iterateAllOutputs()) {
-		if (output.status != 'None') {
-			variableDefinitions.push({
-				name: `Label of output ${output.id + 1}`,
-				variableId: `output_${output.id + 1}`,
-			})
-
-			variableValues[`output_${output.id + 1}`] = output.name
-
-			variableDefinitions.push({
-				name: `Label of input routed to output ${output.id + 1}`,
-				variableId: `output_${output.id + 1}_input`,
-			})
-
-			variableValues[`output_${output.id + 1}_input`] = state.getInput(output.route)?.name ?? '?'
-		}
-	}*/
 
 	self.setVariableDefinitions(coreVariables)
-	
-	// var labelDump = {}
+	self.setVariableValues(variableValues)
 
-	// for (var i = 0; i < Object.keys(self.source_names).length; i++) {
-	// 	var variableName = 'Source_' + self.source_names[i].id
-	// 	var variableValue = self.stripNumber(self.source_names[i].label)
-	// 	labelDump[variableName] = variableValue
-	// }
-
-	// for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
-	// 	var variableName = 'Destination_' + self.dest_names[i].id
-	// 	var variableValue = self.stripNumber(self.dest_names[i].label)
-	// 	labelDump[variableName] = variableValue
-	// }
-
-	// console.log(labelDump)
-	//self.setVariables(labelDump)
 }
 
-instance.prototype.doStatusUpdate= function (src, dst) 
+doStatusUpdate= function (src, dst) 
 { 
 	var self=this
 	self.routerTablemap.set(dst, src)
-	console.log(self.config.label + "::doStatusUpdate: SRC: " + src + ", to DST: " + dst)
-	self.checkFeedbacks('selected_dest')
-	self.checkFeedbacks('selected_source')
+	console.log(self.label + "::doStatusUpdate: SRC: " + src + ", to DST: " + dst)
+	self.checkFeedbacks('selected_dest', 'selected_source')
 }
 
-instance.prototype.setupDstList= function () 
+setupDstList= function () 
 {
 	var self=this
 	self.dest_names=[]
+	//console.log( "setupDstList -- Current dest nameidMap size: " + self.dst_nameidmap.size)
 	self.dst_nameidmap.forEach(( value, key) => 
 	{
 		self.dest_names.push ({label:key, id:value })
+		//console.log('Dest:' + value + ':' + key )
 	})
 	self.dest_names.sort((a, b) => {
 		if (a.label > b.label) return 1;
 		if (a.label < b.label) return -1;
 		return 0;
 	})
+	//console.log( "setupDstList -- dest_names size: " + self.dest_names.length)
 }
 
-instance.prototype.setupSrcList= function () 
+setupSrcList= function () 
 {
 	var self=this
 	self.source_names=[]
@@ -227,20 +182,20 @@ instance.prototype.setupSrcList= function ()
 	})
 }
 
-instance.prototype.setupPresetList= function () 
+setupPresetList= function () 
 {
 	var self = this
-	console.log(self.config.label + "::setupPresetList")
+	console.log(self.label + "::setupPresetList")
 	self.initPresets()
 	self.updateVariableDefinitions()
 	self.setupFeedbacks()
 	self.actions()
 }
 
-instance.prototype.doSC4init= function () 
+doSC4init= function () 
 {
 	var self = this
-	console.log(self.config.label + "::doSC4init()")
+	console.log(self.config.IP + "::doSC4init()")
 	self.srcCount = 0
 	self.dstCount = 0
 	self.statusCount = 0
@@ -272,26 +227,26 @@ instance.prototype.doSC4init= function ()
 	self.sendVerbosity()
 }
 
-instance.prototype.doPing= function () 
+doPing() 
 {
 	var self = this
-	console.log(self.config.label + "::doPing()")
+	//console.log(self.label + "::doPing()")
 	if (self.pingtimer != 0) {
 		clearInterval(self.pingtimer)
 		self.pingtimer = 0
-		console.log(self.config.label + '::Stop ping timer')
+		//console.log(self.label + '::Stop ping timer')
 	}
 
 	var pingcallback = () =>
 	{
 		var self = this
-		//console.log(self.config.label + "::Ping Timer")				
+		//console.log(self.label + "::Ping Timer")				
 		self.sendPing()	
 	};
 	self.pingtimer = setInterval(pingcallback, 5000)
 }
 
-instance.prototype.parseCommand_Control= function (hdrcommand, dmsg) 
+parseCommand_Control(hdrcommand, dmsg) 
 {
 	var self = this
 	switch(hdrcommand)
@@ -300,15 +255,15 @@ instance.prototype.parseCommand_Control= function (hdrcommand, dmsg)
         
         break
     case 253: // RCP4_Control_Ping_Status:        /* takes, status, locks, etc */
-        console.log(self.config.label + "::Ping response")
+        //console.log(self.label + "::Ping response")
         break;
     default:
-        debug(self.config.label + "::Unknown control command: " + hdrcommand)
+		self.log('debug',self.label + "::Unknown control command: " + hdrcommand)
         break
     }
 }
 
-instance.prototype.parseDevInfo = function (d) 
+parseDevInfo(d) 
 {
 	var self = this
 	var devType = (d[0] <<  8) + d[1]
@@ -341,7 +296,9 @@ instance.prototype.parseDevInfo = function (d)
 	else if (devType == 1) // destination
 	{
 		self.dstCount ++
+		console.log( "Destination: " + devName)
 		self.dst_nameidmap.set(devName, devIdx)
+		console.log( "Current dest nameMap size: " + self.dst_nameidmap.size)
 		var levActive=-1;
 		for(var i=0; i<16; i++)
 		{
@@ -353,14 +310,15 @@ instance.prototype.parseDevInfo = function (d)
 		}
 
 		self.dst_idinfomap.set(devIdx, {name: devName, levels: levels, levActive:levActive})
+		console.log( "Current destIDMap size: " + self.dst_idinfomap.size)
 	}
 	else
 	{
-		console.log(self.config.label + "::Unknown dev type: " + devType)
+		console.log(self.label + "::Unknown dev type: " + devType)
 	}
 }
 
-instance.prototype.parseLevelInfo = function (d) 
+parseLevelInfo(d) 
 {
 	var self = this	
 	var levelIdx = d[0]
@@ -379,37 +337,42 @@ instance.prototype.parseLevelInfo = function (d)
 	var levelType = d[pos]
 }
 
-instance.prototype.parseCommand_Sc4 = function (hdrcommand, dmsg) 
+parseCommand_Sc4(hdrcommand, dmsg) 
 {
 	var self = this
+	//console.log("Entering parseCommand_Sc4")
 	switch(hdrcommand)
     {
     case 14: // RCP4_SC4_DevTable_Response:             /* name table downloads */
-		//console.log("router source/destination")
+		self.log("router source/destination")
+		console.log("router source/destination")
 		self.parseDevInfo(dmsg)
         break
     case 38: // RCP4_SC4_DevTable_Done_Output:
-        console.log(self.config.label + "::router destination list end, dstcount: " + self.dstCount)
+		self.log(self.label + "::router destination list end, dstcount: " + self.dstCount)
+        console.log(self.label + "::router destination list end, dstcount: " + self.dstCount)
 		//self.emit('dstlistdone')
 		self.setupDstList()
         break
     case 39: // RCP4_SC4_DevTable_Done_Input:
-        console.log(self.config.label + "::router source list end, srccount: " + self.srcCount)
+		self.log(self.label + "::router source list end, srccount: " + self.srcCount)
+        console.log(self.label + "::router source list end, srccount: " + self.srcCount)
 		//self.emit('srclistdone')
 		self.setupSrcList()
         break
 
     case 9: // RCP4_SC4_Level_Response:
-		console.log(self.config.label + "::router level info")
+		self.log(self.label + "::router level info")
+		console.log(self.label + "::router level info")
 		self.parseLevelInfo(dmsg)
         break
     default:
-        debug(self.config.label + "::Unknown SC4 command: " + hdrcommand)
+		self.log('debug',self.label + "::Unknown SC4 command: " + hdrcommand)
         break
     }
 }
 
-instance.prototype.parseMatrixInfo = function (d) 
+parseMatrixInfo(d) 
 {
 	var self = this	
 	var src = (d[0] << 8) + d[1]
@@ -441,12 +404,12 @@ instance.prototype.parseMatrixInfo = function (d)
 	
 	self.router_statusmap.set(dst, levels)
 	self.doStatusUpdate(src, dst)
-	self.checkFeedbacks('source_dest_route')
-	self.checkFeedbacks('combo_bg')
+	self.checkFeedbacks('source_dest_route', 'combo_bg')
+	
 
 }
 
-instance.prototype.parseMatrixDump = function (d) 
+parseMatrixDump(d) 
 {
 	var self = this	
 	var startOut = (d[0] << 8) + d[1]
@@ -470,11 +433,10 @@ instance.prototype.parseMatrixDump = function (d)
 	}
 	self.statusCount += numOut
 	//console.log("startOut: " + startOut + ", numOut: " + numOut)
-	self.checkFeedbacks('source_dest_route')
-	self.checkFeedbacks('combo_bg')
+	self.checkFeedbacks('source_dest_route', 'combo_bg')
 }
 
-instance.prototype.parseCommand_Unet = function (hdrcommand, dmsg) 
+parseCommand_Unet(hdrcommand, dmsg) 
 {
 	var self = this
 	switch (hdrcommand)
@@ -484,11 +446,11 @@ instance.prototype.parseCommand_Unet = function (hdrcommand, dmsg)
 		self.parseMatrixDump(dmsg)
 		break
 	case 95: // RCP4_UNet_XPT_Status:
-		console.log(self.config.label + "::router matrix status")
+		console.log(self.label + "::router matrix status")
 		self.parseMatrixInfo(dmsg)
 		break
 	case 66: // RCP4_UNet_Matrix_Response_Chunk_End:
-        console.log(self.config.label + "::router matrix status end, processed count: " + self.statusCount + ", map count: " + self.router_statusmap.size)
+        console.log(self.label + "::router matrix status end, processed count: " + self.statusCount + ", map count: " + self.router_statusmap.size)
         //self.emit('statusdumpdone')
 		self.setupPresetList()
 		break
@@ -497,14 +459,16 @@ instance.prototype.parseCommand_Unet = function (hdrcommand, dmsg)
     case 1: // RCP4_UNet_XPT_Reply:
 		break
 	default:
-		debug(self.config.label + "::Unknown UNET command: " + hdrcommand)
+		self.log('debug',self.label + "::Unknown UNET command: " + hdrcommand)
 		break
 	}
 }
 
-instance.prototype.processCmd = function (hdrinterface, hdrcommand, hdrmode, dmsg) 
+processCmd(hdrinterface, hdrcommand, hdrmode, dmsg) 
 {
 	var self = this
+	//self.log('processCmd')
+	//console.log('processCmd')
 	switch(hdrinterface)
     {
     case 18: // RCP4_UNet:        /* takes, status, locks, etc */
@@ -520,15 +484,14 @@ instance.prototype.processCmd = function (hdrinterface, hdrcommand, hdrmode, dms
         self.parseCommand_Control(hdrcommand, dmsg)
         break
     default:
-		debug(self.config.label + "::Unknown RCP3 interface: " + hdrinterface)
-        break
+		self.log('debug',self.label + "::Unknown RCP3 interface: " + hdrinterface)
+		break
     }
 }
 
-instance.prototype.decodeData= function (data) 
+decodeData(data) 
 {
 	var self = this
-	//var arr = [self.dbuf, data]
 	var dd = Buffer.concat([self.dbuf, data])
 	var done = false;
 	var rcp3hdrlen = 6
@@ -537,7 +500,9 @@ instance.prototype.decodeData= function (data)
 	var hdrcommand = 0
 	var hdrmode = 0
 	var hdrpadding = 0
-	var hdrdatalen = 0
+	var hdrdatalen = 0 
+
+	//console.log('decodeData')
 
 	while (!done)
 	{
@@ -579,14 +544,14 @@ instance.prototype.decodeData= function (data)
 			break
 
 		default:
-			debug(self.config.label + "::Unknown decode data state: " + self.datastate)
+			self.log('debug',self.label + "::Unknown decode data state: " + self.datastate)
 			break
 		}
 	}
 	self.dbuf = dd.subarray(startpos)
 }
 
-instance.prototype.init_tcp = function () {
+init_tcp () {
 	var self = this
 	var receivebuffer = Buffer.from('')
 
@@ -595,36 +560,41 @@ instance.prototype.init_tcp = function () {
 		delete self.socket
 	}
 
+	if (this.config.port === undefined) {
+		this.config.port = 5001
+	}
 	if (self.config.host) {
-		self.socket = new tcp(self.config.host, self.config.port)
-
-		self.socket.on('status_change', function (status, message) {
-			self.status(status, message)
+		self.socket = new TCPHelper(self.config.host, self.config.port)
+		
+		self.socket.on('status_change',  (status, message) => {
+			self.log('debug','Update Status')
+			self.updateStatus(status, message)
 		})
 
-		self.socket.on('error', function (err) {
-			debug('Network error', err)
-			self.log('error', 'Network error: ' + err.message)
+		self.socket.on('error', (err) => {
+			console.log('debug','Network error ${err}')
+			console.log('error', 'Network error: ' + err.message)
 		})
 
 		self.socket.on('connect', function () {
-			debug('Connected')
+			console.log('debug','Connected')
 			self.doSC4init()
 			self.doPing()			
 		})
 
-		self.socket.on('data', function (chunk) {
+		self.socket.on('data',  (chunk) => {
+			//console.log('debug','Decode Data')
 			self.decodeData(chunk)
 		})
 	}
 }
 
-instance.prototype.config_fields = function () {
+getConfigFields() {
 	var self = this
 
 	return [
 		{
-			type: 'text',
+			type: 'static-text',
 			id: 'info',
 			width: 12,
 			label: 'Information',
@@ -635,7 +605,7 @@ instance.prototype.config_fields = function () {
 			id: 'host',
 			label: 'Router Controller IP',
 			width: 6,
-			regex: self.REGEX_IP,
+			regex: Regex.IP,
 		},
 		{
 			type: 'textinput',
@@ -643,25 +613,25 @@ instance.prototype.config_fields = function () {
 			label: 'Port',
 			width: 6,
 			default: '5001',
-			regex: self.REGEX_PORT,
+			regex: Regex.PORT,
 		},
 	]
 }
 
-instance.prototype.setupFeedbacks = function (system) {
+setupFeedbacks  (system) {
 	var self = this
-
+	var CompanionTextSize = '18'
 	// feedback
-	var feedbacks = {}
-	CompanionTextSize = '18'
+	const feedbacks = {};
+		
 
 	feedbacks['selected_dest'] = {
 		type: 'boolean',
-		label: 'Selected Destination',
+		name: 'Selected Destination',
 		description: 'Change colour of button on selected destination',
-		style: {
-			color: self.rgb(0, 0, 0),
-			bgcolor: self.rgb(102, 255, 102),
+		defaultStyle: {
+			color: combineRgb(0, 0, 0),
+			bgcolor: combineRgb(102, 255, 102),
 			//VE try here to add something to the button text
 			//text: this.text + '\n' + selected_routed_source_str,
 			size: CompanionTextSize 
@@ -675,15 +645,24 @@ instance.prototype.setupFeedbacks = function (system) {
 				choices: self.dest_names,
 			},
 		],
+		callback: (feedback) => {
+			console.log(self.label + "::feedback:selected_dest: selected_dest: " + self.selected_dest + ", option dest:" + feedback.options.dest)
+			if (self.selected_dest === feedback.options.dest) 
+			{
+				return true
+			} else {
+				return false
+			}
+		}
 	}
 
 	feedbacks['selected_source'] = {
 		type: 'boolean',
-		label: 'Selected Source',
+		name: 'Selected Source',
 		description: 'Change colour of button on selected source',
 		style: {
-			color: self.rgb(0, 0, 0),
-			bgcolor: self.rgb(102, 255, 255),
+			color: combineRgb(0, 0, 0),
+			bgcolor: combineRgb(102, 255, 255),
 		},
 		options: [
 			{
@@ -694,15 +673,23 @@ instance.prototype.setupFeedbacks = function (system) {
 				choices:self.source_names,
 			},
 		],
+		callback: (feedback) => {
+			console.log(self.label + "::feedback:selected_source: selected_source: " + self.selected_source + ", option source:" + feedback.options.source)
+			if (self.selected_source === feedback.options.source) {
+				return true
+			} else {
+				return false
+			}
+		}
 	}
 
 	feedbacks['source_dest_route'] = {
 		type: 'boolean',
-		label: 'Source Routed to Destination',
+		name: 'Source Routed to Destination',
 		description: 'Change button colour when this source is routed to selected destination on any level',
 		style: {
-			color: self.rgb(0, 0, 0),
-			bgcolor: self.rgb(255, 191, 128),
+			color: combineRgb(0, 0, 0),
+			bgcolor: combineRgb(255, 191, 128),
 		},
 		options: [
 			{
@@ -713,15 +700,39 @@ instance.prototype.setupFeedbacks = function (system) {
 				choices:self.source_names,
 			},
 		],
+		callback: (feedback) => {
+			if(self.selected_dest>-1)
+			{
+				if(self.router_statusmap.has(self.selected_dest))
+				{
+					var levels=self.router_statusmap.get(self.selected_dest)
+					var firstActive= self.dst_idinfomap.get(self.selected_dest).levActive
+				
+					if(firstActive>-1 )
+					{
+						if(levels[firstActive]===feedback.options.source)
+						{
+							return true
+						} 
+						else{
+							return false
+						}
+					} 
+				    else{ return false
+						}
+				}
+			}
+			return false
+		}
 	} 
 
 	feedbacks['combo_bg'] = {
 		type: 'boolean', //'advanced',
-		label: 'Change background color by destination',
+		name: 'Change background color by destination',
 		description: 'If the set Source is in use by the set Destination, change background color of the button',
 		style: {
-			color: self.rgb(0, 0, 0),
-			bgcolor: self.rgb(64,64, 255),
+			color: combineRgb(0, 0, 0),
+			bgcolor: combineRgb(64,64, 255),
 		},
 		options: [
 			{
@@ -750,66 +761,8 @@ instance.prototype.setupFeedbacks = function (system) {
 				id: 'bg',
 				default: combineRgb(255, 255, 0),
 			},*/
-		],
-		
-	} 
-
-	self.setFeedbackDefinitions(feedbacks)
-}
-
-instance.prototype.feedback = function (feedback, bank) {
-	var self = this
-
-	switch (feedback.type) {		
-		case 'selected_dest': {
-			console.log(self.config.label + "::feedback:selected_dest: selected_dest: " + self.selected_dest + ", option dest:" + feedback.options.dest)
-			if (self.selected_dest === feedback.options.dest) 
-			{
-				return true
-			} else {
-				return false
-			}
-			break
-		}
-
-		case 'selected_source': {
-			console.log(self.config.label + "::feedback:selected_source: selected_source: " + self.selected_source + ", option source:" + feedback.options.source)
-			if (self.selected_source === feedback.options.source) {
-				return true
-			} else {
-				return false
-			}
-			break
-		}
-
-		case 'source_dest_route': {
-			
-			//console.log('feedback:source_dest_route: selected_dest: ' + self.selected_dest + ':' + feedback.options.source)
-			if(self.selected_dest>-1)
-			{
-				if(self.router_statusmap.has(self.selected_dest))
-				{
-					var levels=self.router_statusmap.get(self.selected_dest)
-					var firstActive= self.dst_idinfomap.get(self.selected_dest).levActive
-				
-					if(firstActive>-1 )
-					{
-						if(levels[firstActive]===feedback.options.source)
-						{
-							return true
-						} 
-						else{
-							return false
-						}
-					} 
-				    else{ return false
-						}
-				}
-			}
-			return false
-		} 
-
-		case 'combo_bg': {
+		], 
+		callback: (feedback) => {
 			console.log('---------------------------------feedback:combo_bg: set_dest: ' + feedback.options.dest + ':' + feedback.options.source)
 			if(feedback.options.dest>-1)
 			{
@@ -835,11 +788,20 @@ instance.prototype.feedback = function (feedback, bank) {
 			}
 			
 		}
+		
+	} 
 
+	self.setFeedbackDefinitions(feedbacks)
+
+	//VE 07-21-23
+	for(let feedback in feedbacks) {
+		this.checkFeedbacks(feedback);
 	}
 }
 
-instance.prototype.initPresets = function () {
+
+
+initPresets () {
 	var self = this
 	var presets = []
 
@@ -852,41 +814,46 @@ instance.prototype.initPresets = function () {
 		var srcname='$(' + self.label +':'+ s + ')'
 		presets.push({
 			category: 'Sources (by name)',
-			label: 'Source ' + i,
-			bank: {
-				style: 'text',
+			name: 'Source ' + i,
+			type:'button',
+			style: {
 				text: srcname, //self.source_names[i].label, 
 				size: '14',
-				color: self.rgb(255, 255, 255),
-				bgcolor: self.rgb(0, 0, 0),
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
 			},
-			actions: [
+			steps: [
 				{
-					action: 'select_source_name',
-					options: {
-						source: self.source_names[i].id,
-					},
+					down:[
+						{
+							actionId: 'select_source_name',
+							options: {
+								source: self.source_names[i].id,
+							},
+						},
+					],
+					up: [],
 				},
 			],
 			feedbacks: [
 				{
-					type: 'selected_source',
+					feedbackId: 'selected_source',
 					options: {
 						source:  self.source_names[i].id,
 					},
 					style: {
-						color: self.rgb(0, 0, 0),
-						bgcolor: self.rgb(102, 255, 255),
+						color: combineRgb(0, 0, 0),
+						bgcolor: combineRgb(102, 255, 255),
 					},
 				},
 				{
-					type: 'source_dest_route',
+					feedbackId: 'source_dest_route',
 					options: {
 						source:  self.source_names[i].id,
 					},
 					style: {
-						color: self.rgb(0, 0, 0),
-						bgcolor: self.rgb(255, 191, 128),
+						color: combineRgb(0, 0, 0),
+						bgcolor: combineRgb(255, 191, 128),
 					},
 				},
 			],
@@ -897,31 +864,36 @@ instance.prototype.initPresets = function () {
 		var dstname='$(' + self.label +':'+ s + ')'
 		presets.push({
 			category: 'Destinations (by name)',
-			label: 'Destination ' + i,
-			bank: {
-				style: 'text',
+			name: 'Destination ' + i,
+			type:'button',
+			style: {
 				text: dstname, //self.dest_names[i].label,
 				size: '14',
-				color: self.rgb(255, 255, 255),
-				bgcolor: self.rgb(0, 0, 0),
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
 			},
-			actions: [
+			steps: [
 				{
-					action: 'select_dest_name',
-					options: {
-						dest: self.dest_names[i].id,
-					},
+					down: [
+						{
+						actionId: 'select_dest_name',
+						options: {
+							dest: self.dest_names[i].id,
+							},
+						},
+					],
+					up: [],
 				},
 			],
 			feedbacks: [
 				{
-					type: 'selected_dest',
+					feedbackId: 'selected_dest',
 					options: {
 						dest: self.dest_names[i].id,
 					},
 					style: {
-						color: self.rgb(0, 0, 0),
-						bgcolor: self.rgb(102, 255, 102),
+						color: combineRgb(0, 0, 0),
+						bgcolor: combineRgb(102, 255, 102),
 					},
 				},
 			],
@@ -933,31 +905,35 @@ instance.prototype.initPresets = function () {
 	presets.push(
 		{
 			category: 'SinglePressTakeBtn',
-			label:'Combo Btn',
-			bank: {
-				style: 'text',
+			name:'Combo Btn',
+			type:'button',
+			style: {
 				text: '',
 				size: '14',
-				color: self.rgb(255, 255, 255),
-				bgcolor: self.rgb(0, 0, 0),
+				color:combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
 			},
-			actions: [
+			steps: [
 				{
-					action: 'route',
-					options: {
-						//source: self.source_names[i].id,
-					},
+					down: [
+						{
+							actionId: 'route',
+							options: {//source: self.source_names[i].id,
+							},
+						},
+					],
+					up: [],
 				},
 			],
 			feedbacks: [
 				{
-					type: 'combo_bg',
+					feedbackId: 'combo_bg',
 					options: {
 						//source:  self.source_names[i].id,
 					},
 					style: {
-						color: self.rgb(0, 0, 0),
-						bgcolor: self.rgb(255, 255, 128),
+						color: combineRgb(0, 0, 0),
+						bgcolor: combineRgb(255, 255, 128),
 					},
 				},
 				
@@ -968,13 +944,13 @@ instance.prototype.initPresets = function () {
 	self.setPresetDefinitions(presets)
 }
 
-instance.prototype.actions = function () {
+actions (system) {
 	var self = this
 
-	self.system.emit('instance_actions', self.id, {
+	self.setActionDefinitions( {
 		
 		select_dest_name: {
-			label: 'Select Destination name',
+			name: 'Select Destination name',
 			options: [
 				{
 					type: 'dropdown',
@@ -983,12 +959,20 @@ instance.prototype.actions = function () {
 					default: 1,
 					choices: self.dest_names,
 				},
-			],
+			], 
+
+			callback: (action) => {
+				self.selected_dest = parseInt(action.options.dest)
+				console.log('set destination ' + self.selected_dest)
+				self.setVariableValues({Destination: self.selected_dest})
+				self.checkFeedbacks('selected_dest','source_dest_route', 'combo_bg')
+		
+			},
 			
 		},
 
 		select_source_name: {
-			label: 'Select Source name',
+			name: 'Select Source name',
 			options: [
 				{
 					type: 'dropdown',
@@ -997,12 +981,29 @@ instance.prototype.actions = function () {
 					default: 1,
 					choices: self.source_names,
 				},
-			],
+			], 
+
+			callback: (action) => {
+				
+				self.selected_source = parseInt(action.options.source)
+				console.log('set source TEST********** ' + self.selected_source)
+				self.setVariableValues({Source: self.selected_source})
+				self.checkFeedbacks('selected_source','combo_bg' )
+				
+				//VE check if we can send a take cmd
+				if(self.selected_dest>=0)
+				{
+					console.log('sending take cmd', self.selected_source, self.selected_dest)			
+					self.sendSingleTake(self.selected_source, self.selected_dest)
+					self.selected_source=-1
+				}
+		
+			},
 		},
 
 
-		route : {
-			label: 'Single Press Take Src to Dst',
+		route: {
+			name: 'Single Press Take Src to Dst',
 			options: [
 				{
 					type: 'dropdown',
@@ -1015,166 +1016,134 @@ instance.prototype.actions = function () {
 					type: 'dropdown',
 					label: 'Destination',
 					id: 'destination',
-					
 					choices: self.dest_names,
 					default:0 ,//'Destination 0',// '',//0,//self.dest_names[0]?.id,
 				},
 			],
-			
+			callback: (action) => {
+				
+				self.selected_dest = parseInt(action.options.destination)
+				console.log('Combo Press - set destination ' + self.selected_dest)
+				self.setVariableValues({Destination: self.selected_dest})
+				self.checkFeedbacks('selected_dest', 'source_dest_route')
+							
+				self.selected_source = parseInt(action.options.source)
+				console.log('Combo Press - set source TEST********** ' + self.selected_source)
+				self.setVariableValues({Source: self.selected_source})
+				self.checkFeedbacks('selected_source')
+				
+				//VE check if we can send a take cmd
+				if(self.selected_dest>=0)
+				{
+					console.log('sending take cmd', self.selected_source, self.selected_dest)			
+					self.sendSingleTake(self.selected_source, self.selected_dest)
+					self.selected_source=-1
+					//self.selected_dest=prev_dest
+					self.checkFeedbacks('combo_bg')
+					//self.checkFeedbacks('selected_dest', 'selected_source','source_dest_route','combo_bg' )
+				}
+
+		
+			},
 		},
 	})
 }
 
-instance.prototype.action = function (action) {
-	var self = this
-	var prev_dest=self.selected_dest
 
-	const opt = action.options
-
-	if (action.action === 'select_dest_name') {
-		self.selected_dest = parseInt(opt.dest)
-		console.log('set destination ' + self.selected_dest)
-		self.setVariable('Destination', self.selected_dest)
-		self.checkFeedbacks('selected_dest')
-		self.checkFeedbacks('source_dest_route')
-		self.checkFeedbacks('combo_bg')
-		return
-	}
-
-	if (action.action === 'select_source_name') {
-		self.selected_source = parseInt(opt.source)
-		console.log('set source TEST********** ' + self.selected_source)
-		self.setVariable('Source', self.selected_source)
-		self.checkFeedbacks('selected_source')
-		self.checkFeedbacks('combo_bg')
-		//VE check if we can send a take cmd
-		if(self.selected_dest>=0)
-		{
-			console.log('sending take cmd', self.selected_source, self.selected_dest)			
-			self.sendSingleTake(self.selected_source, self.selected_dest)
-			self.selected_source=-1
-		}
-		return
-	}
-	if (action.action === 'route') {
-		self.selected_dest = parseInt(opt.destination)
-		console.log('set destination ' + self.selected_dest)
-		self.setVariable('Destination', self.selected_dest)
-		self.checkFeedbacks('selected_dest')
-		self.checkFeedbacks('source_dest_route')
-	
-		self.selected_source = parseInt(opt.source)
-		console.log('set source TEST********** ' + self.selected_source)
-		self.setVariable('Source', self.selected_source)
-		self.checkFeedbacks('selected_source')
-		//VE check if we can send a take cmd
-		if(self.selected_dest>=0)
-		{
-			console.log('sending take cmd', self.selected_source, self.selected_dest)			
-			self.sendSingleTake(self.selected_source, self.selected_dest)
-			self.selected_source=-1
-			//self.selected_dest=prev_dest
-			self.checkFeedbacks('combo_bg')
-		}
-
-		return
-	}
-	//action.internal.
-}
 
 // byte[] tcpHeader = new byte[] { 0x03, 0xFE, 0, 0, 0, 0 };
-instance.prototype.sendPing = function () {
+sendPing () {
 	var self = this
 
 	//console.log('Sending PING')
-	if (self.socket !== undefined && self.socket.connected) {
+	if ( self.socket.isConnected) {
 		self.socket.send(self.hexStringToBuffer('03FE00000000'))
 	} else {
-		debug('Socket not connected :(')
+		console.log('Socket not connected :(')
 	}
 }
 
 // byte[] tcpHeader = new byte[] { 0x03, 0xFE, 0, 0, 0, 0 };
-instance.prototype.sendPingResp = function () {
+sendPingResp () {
 	var self = this
 
-	console.log('Sending PING RESP')
-	if (self.socket !== undefined && self.socket.connected) {
+	//console.log('Sending PING RESP')
+	if (self.socket !== undefined && self.socket.isConnected) {
 		self.socket.send(self.hexStringToBuffer('03FD00000000'))
 	} else {
-		debug('Socket not connected :(')
+		console.log('Socket not connected :(')
 	}
 }
 
 // byte[] tcpHeader = new byte[] { 0x04, 0, 0x02, 0, 0, 2, 0, 0x02 };
-instance.prototype.sendVerbosity= function () {
+sendVerbosity () {
 	var self = this
 
-	console.log(self.config.label + '::Sending VERBOSITY')
-	if (self.socket !== undefined && self.socket.connected) {
+	console.log(self.label + '::Sending VERBOSITY')
+	if (self.socket !== undefined && self.socket.isConnected) {
 		self.socket.send(self.hexStringToBuffer('0400020000020002'))
 	} else {
-		debug('Socket not connected :(')
+		self.log('Socket not connected :(')
 	}
 }
 
 // byte[] command = new byte[] { 0x80, 0x0D, 0, 0, 0, 0x01, 0x00 };
-instance.prototype.sendGetSourceList= function () {
+sendGetSourceList() {
 	var self = this
 
-	console.log(self.config.label + '::Sending GET SOURCE LIST')
-	if (self.socket !== undefined && self.socket.connected) {
+	console.log(self.label + '::Sending GET SOURCE LIST')
+	if (self.socket !== undefined && self.socket.isConnected) {
 		self.socket.send(self.hexStringToBuffer('800D0000000100'))
 	} else {
-		debug('Socket not connected :(')
+		self.log('Socket not connected :(')
 	}
 }
 
 // byte[] command = new byte[] { 0x80, 0x0D, 01, 0, 0, 0x01, 0x01 };
-instance.prototype.sendGetDestinationList= function () {
+sendGetDestinationList () {
 	var self = this
 
-	console.log(self.config.label + '::Sending GET DESTINATION LIST')
-	if (self.socket !== undefined && self.socket.connected) {
+	console.log(self.label + '::Sending GET DESTINATION LIST')
+	if (self.socket !== undefined && self.socket.isConnected) {
 		self.socket.send(self.hexStringToBuffer('800D0100000101'))
 	} else {
-		debug('Socket not connected :(')
+		self.log('Socket not connected :(')
 	}
 }
 
 // byte[] tcpHeader = new byte[] { 0x12, 0x40, 0, 0, 0, 0 };
-instance.prototype.sendGetRouterStatus= function () {
+sendGetRouterStatus () {
 	var self = this
 
-	console.log(self.config.label + '::Sending GET ROUTER STATUS')
-	if (self.socket !== undefined && self.socket.connected) {
+	console.log(self.label + '::Sending GET ROUTER STATUS')
+	if (self.socket !== undefined && self.socket.isConnected) {
 		self.socket.send(self.hexStringToBuffer('124000000000'))
 	} else {
-		debug('Socket not connected :(')
+		self.log('Socket not connected :(')
 	}
 }
 
 // byte[] tcpHeader = new byte[] { 0x80, 0x08, (idx & 0xFF), 0, 0, 1, (idx & 0xFF)};
-instance.prototype.sendGetLevelInfo= function (idx) {
+sendGetLevelInfo (idx) {
 	var self = this
 
-	console.log(self.config.label + '::Sending GET LEVEL INFO at IDX: ' + idx)
-	if (self.socket !== undefined && self.socket.connected)
+	console.log(self.label + '::Sending GET LEVEL INFO at IDX: ' + idx)
+	if (self.socket !== undefined && self.socket.isConnected)
 	{
 		var index = idx & 0xFF
 		var x = self.padLeft(index.toString(16), 2)
 		self.socket.send(self.hexStringToBuffer('8008' + x + '000001' + x))
 	} else {
-		debug('Socket not connected :(')
+		self.log('Socket not connected :(')
 	}
 }
 
 // byte[] tcpHeader = new byte[] { 0x12, 0x00, (chksum & 0xFF), 0, 0, 8, (src & 0xFFFF), (dst & 0xFFFF), (lvl & 0xFFFFFFFF)};
-instance.prototype.sendSingleTake= function (src, dst) {
+sendSingleTake (src, dst) {
 	var self = this
 
-	console.log(self.config.label + '::Sending TAKE at SRC: ' + src + " DST: " + dst)
-	if (self.socket !== undefined && self.socket.connected)
+	console.log(self.label + '::Sending TAKE at SRC: ' + src + " DST: " + dst)
+	if (self.socket !== undefined && self.socket.isConnected)
 	{
 		if (self.src_idinfomap.has(src) && self.dst_idinfomap.has(dst))
 		{
@@ -1205,12 +1174,12 @@ instance.prototype.sendSingleTake= function (src, dst) {
 			self.socket.send(self.hexStringToBuffer('1200' + m + '000008' + ss))
 		}
 	} else {
-		debug('Socket not connected :(')
+		self.log('Socket not connected :(')
 	}
 }
 
 
-instance.prototype.stripNumber = function (str) {
+stripNumber  (str) {
 	var n = str.indexOf(':')
 	if (n > 0) {
 		return str.slice(n + 2)
@@ -1218,7 +1187,7 @@ instance.prototype.stripNumber = function (str) {
 		return str
 	}
 }
-instance.prototype.padLeft = function (nr, n, str) {
+padLeft (nr, n, str) {
 	if (n < String(nr).length)
 	{
 		var s = String(nr).slice(-n).split()
@@ -1228,11 +1197,11 @@ instance.prototype.padLeft = function (nr, n, str) {
 		return Array(n - String(nr).length + 1).join(str || '0') + nr
 }
 
-instance.prototype.hexStringToBuffer = function (str) {
+hexStringToBuffer  (str) {
 	return Buffer.from(str, 'hex')
 }
 
-instance.prototype.takeCmd = function (srcname, dstname) {
+takeCmd  (srcname, dstname) {
 	// convert input value to upper case
 	if (self.src_nameidmap.has(srcname) && self.dst_nameidmap.has(dstname))
 	{	
@@ -1241,6 +1210,6 @@ instance.prototype.takeCmd = function (srcname, dstname) {
 		self.sendSingleTake(srcidx, dstidx)
 	}
 }
+}
 
-instance_skel.extendedBy(instance)
-exports = module.exports = instance
+runEntrypoint(UtahScientificBps, [])

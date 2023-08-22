@@ -2,19 +2,19 @@
 
 This module connects to devices that support the RCP3 protocol.
 
-### Configuration
+** Configuration
 * Type in the SC4 device IP address.
 * The SC4 device will communicate over port 5001 by default.
 
 
-### Available actions
+** Available actions
 * Add Source
 * Add Destination
 * Send direct takes by selecting a dest first then a source to be routed to.
 * Send Single press takes to set source to set destination.
 
-### Feedbacks
-#### Transport feedbacks and variables
+** Feedbacks
+** Transport feedbacks and variables
 * Show selected destination
 * Show selected source
 * Show Status by changing source color of the routed source when destination is selected.

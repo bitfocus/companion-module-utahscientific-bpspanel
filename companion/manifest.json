@@ -1,0 +1,30 @@
+{
+	"id": "utahscientific-bpspanel",
+	"name": "utahscientific-bpspanel",
+	"shortname": "bpspanel",
+	"description": "Companion module for Utah scientific Button per source",
+	"version": "2.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-utahscientific-bpspanel.git",
+	"bugs": "https://github.com/bitfocus/companion-module-utahscientific-bpspanel/issues",
+	"maintainers": [
+		{
+			"name": "UTSCI",
+			"email": "veaton@utsci.com"
+		}
+	],
+	"legacyIds": [
+		"bps"
+	],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "..\\index.js"
+	},
+	"manufacturer": "Utah Scientific",
+	"products": [
+		"BPS"
+	],
+	"keywords": []
+}
