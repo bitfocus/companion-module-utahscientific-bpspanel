@@ -4,10 +4,14 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
+		"postinstall": "husky",
 		"format": "prettier -w .",
-		"package": "companion-module-build",
+		"package": "run build && companion-module-build",
+		"build": "rimraf dist && run build:main",
+		"build:main": "tsc -p tsconfig.build.json",
+		"dev": "tsc -p tsconfig.build.json --watch",
 		"lint:raw": "eslint",
-		"lint": "yarn lint:raw ."
+		"lint": "run lint:raw ."
 	},
 	"license": "MIT",
 	"repository": {
@@ -15,16 +19,31 @@
 		"url": "git+https://github.com/bitfocus/companion-module-utahscientific-bpspanel.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.13.4"
+		"@companion-module/base": "~1.13.4",
+		"utahscientific-rscp": "file:/Users/bryce/Development/bitfocus/utahscientific-rscp"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.4.2",
+		"@types/node": "^24.10.1",
 		"eslint": "^9.39.1",
-		"prettier": "^3.6.2"
+		"husky": "^9.1.7",
+		"lint-staged": "^16.2.7",
+		"prettier": "^3.6.2",
+		"rimraf": "^6.1.2",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.47.0"
 	},
 	"engines": {
 		"node": "^22.12"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
+	"lint-staged": {
+		"*.{css,json,md,scss}": [
+			"prettier --write"
+		],
+		"*.{ts,tsx,js,jsx}": [
+			"yarn lint:raw --fix"
+		]
+	},
 	"packageManager": "yarn@4.11.0"
 }
