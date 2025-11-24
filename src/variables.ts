@@ -28,7 +28,8 @@ export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 		variables.push(
 			{ variableId: `source_${id}_name`, name: `Source ${id} - Label` },
 			{ variableId: `destination_${id}_name`, name: `Destination ${id} - Label` },
-			{ variableId: `destination_${id}_source`, name: `Destination ${id} - Current Source` },
+			{ variableId: `destination_${id}_source_name`, name: `Destination ${id} - Current Source Name` },
+			{ variableId: `destination_${id}_source_id`, name: `Destination ${id} - Current Source ID` },
 		)
 	}
 
@@ -39,8 +40,9 @@ export function UpdateVariables(self: UtahScientificInstance): void {
 	const statuses = self.router.state.routes
 	for (let i = 0; i < statuses.length; i++) {
 		const id = i + 1
-		const Source = statuses[i]
-		self.setVariableValues({ [`destination_${id}_source`]: Source })
+		const sourceId = statuses[i]
+		const sourceName = self.router.state.sourceNames.find((source) => source.id === sourceId)?.label
+		self.setVariableValues({ [`destination_${id}_source_id`]: sourceId, [`destination_${id}_source_name`]: sourceName })
 	}
 	const sourceNames = self.router.state.sourceNames
 	for (const source of sourceNames) {
