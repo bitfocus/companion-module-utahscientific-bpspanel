@@ -12,6 +12,13 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					default: self.router.state.sourceNames[0]?.id,
 					choices: self.router.state.sourceNames,
 				},
+				{
+					type: 'checkbox',
+					label: 'Take On Select',
+					id: 'take',
+					default: false,
+					description: 'Take the source immediately after selecting it, bypassing the separate Take action',
+				},
 			],
 
 			callback: (action) => {
@@ -21,6 +28,13 @@ export function UpdateActions(self: UtahScientificInstance): void {
 						: Number(action.options.source)
 				if (!isNaN(sourceId)) {
 					self.router.selectSource(sourceId)
+					if (action.options.take) {
+						if (self.router.state.selectedDestination >= 0) {
+							self.router.take(sourceId, self.router.state.selectedDestination, 1)
+						} else {
+							self.log('warn', 'Destination not selected')
+						}
+					}
 				}
 			},
 		},
@@ -57,7 +71,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 			},
 		},
 		route: {
-			name: 'Single Press Take Src to Dst',
+			name: 'Route Source to Destination',
 			options: [
 				{
 					type: 'dropdown',
