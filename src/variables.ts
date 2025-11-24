@@ -26,9 +26,9 @@ export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 	for (let i = 0; i < statuses.length; i++) {
 		const id = i + 1
 		variables.push(
-			{ variableId: `input_${id}_name`, name: `Input ${id} - Label` },
-			{ variableId: `output_${id}_name`, name: `Output ${id} - Label` },
-			{ variableId: `output_${id}_input`, name: `Output ${id} - Current Input` },
+			{ variableId: `source_${id}_name`, name: `Source ${id} - Label` },
+			{ variableId: `destination_${id}_name`, name: `Destination ${id} - Label` },
+			{ variableId: `destination_${id}_source`, name: `Destination ${id} - Current Source` },
 		)
 	}
 
@@ -39,16 +39,16 @@ export function UpdateVariables(self: UtahScientificInstance): void {
 	const statuses = self.router.state.routes
 	for (let i = 0; i < statuses.length; i++) {
 		const id = i + 1
-		const input = statuses[i]
-		self.setVariableValues({ [`output_${id}_input`]: input })
+		const Source = statuses[i]
+		self.setVariableValues({ [`destination_${id}_source`]: Source })
 	}
 	const sourceNames = self.router.state.sourceNames
 	for (const source of sourceNames) {
-		self.setVariableValues({ [`input_${source.id}_name`]: source.label })
+		self.setVariableValues({ [`source_${source.id}_name`]: source.label })
 	}
 	const destinationNames = self.router.state.destinationNames
 	for (const destination of destinationNames) {
-		self.setVariableValues({ [`output_${destination.id}_name`]: destination.label })
+		self.setVariableValues({ [`destination_${destination.id}_name`]: destination.label })
 	}
 
 	const selectedSource = self.router.state.selectedSource

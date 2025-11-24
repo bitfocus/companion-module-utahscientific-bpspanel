@@ -3,7 +3,7 @@ import type { UtahScientificInstance } from './main.js'
 export function UpdateActions(self: UtahScientificInstance): void {
 	self.setActionDefinitions({
 		select_source_name: {
-			name: 'Select Source name',
+			name: 'Select Source',
 			options: [
 				{
 					type: 'dropdown',
@@ -39,7 +39,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 			},
 		},
 		select_dest_name: {
-			name: 'Select Destination name',
+			name: 'Select Destination',
 			options: [
 				{
 					type: 'dropdown',

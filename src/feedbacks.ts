@@ -7,7 +7,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 	feedbacks['selected_dest'] = {
 		type: 'boolean',
 		name: 'Selected Destination',
-		description: 'Change colour of button on selected destination',
+		description: 'Change style of button when destination is selected',
 		defaultStyle: {
 			color: combineRgb(0, 0, 0),
 			bgcolor: combineRgb(102, 255, 102),
@@ -31,7 +31,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 	feedbacks['selected_source'] = {
 		type: 'boolean',
 		name: 'Selected Source',
-		description: 'Change colour of button on selected source',
+		description: 'Change style of button when source is selected',
 		defaultStyle: {
 			color: combineRgb(0, 0, 0),
 			bgcolor: combineRgb(102, 255, 255),
@@ -57,7 +57,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 	feedbacks['source_dest_route'] = {
 		type: 'boolean',
 		name: 'Source Routed to Destination',
-		description: 'Change button colour when this source is routed to selected destination on any level',
+		description: 'Change style of button when source is routed to selected destination on any level',
 		defaultStyle: {
 			color: combineRgb(0, 0, 0),
 			bgcolor: combineRgb(255, 191, 128),
