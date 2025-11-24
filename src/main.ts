@@ -24,7 +24,8 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 			await this.router.connect()
 			this.updateModuleComponents()
 		} catch (error) {
-			this.log('error', `Failed to connect to router: ${error}`)
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			this.log('error', `Failed to connect to router: ${errorMessage}`)
 			this.updateStatus(InstanceStatus.Disconnected)
 		}
 	}
@@ -48,7 +49,8 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 				await this.router.connect()
 				this.updateModuleComponents()
 			} catch (error) {
-				this.log('error', `Failed to reconnect with new config: ${error}`)
+				const errorMessage = error instanceof Error ? error.message : String(error)
+				this.log('error', `Failed to reconnect with new config: ${errorMessage}`)
 				this.updateStatus(InstanceStatus.Disconnected)
 			}
 		}

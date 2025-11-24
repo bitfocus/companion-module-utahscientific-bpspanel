@@ -17,16 +17,14 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				type: 'dropdown',
 				label: 'Destination',
 				id: 'dest',
-				default: self.router.destinationNames[0]?.id,
-				choices: self.router.destinationNames,
+				default: self.router.state.destinationNames[0]?.id,
+				choices: self.router.state.destinationNames,
 			},
 		],
 		callback: (feedback) => {
-			if (self.router.getSelectedDestination() === feedback.options.dest) {
-				return true
-			} else {
-				return false
-			}
+			const destId =
+				typeof feedback.options.dest === 'string' ? parseInt(feedback.options.dest, 10) : Number(feedback.options.dest)
+			return self.router.state.selectedDestination === destId
 		},
 	}
 
@@ -43,16 +41,16 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				type: 'dropdown',
 				label: 'Source',
 				id: 'source',
-				default: self.router.sourceNames[0]?.id,
-				choices: self.router.sourceNames,
+				default: self.router.state.sourceNames[0]?.id,
+				choices: self.router.state.sourceNames,
 			},
 		],
 		callback: (feedback) => {
-			if (self.router.getSelectedSource() === feedback.options.source) {
-				return true
-			} else {
-				return false
-			}
+			const sourceId =
+				typeof feedback.options.source === 'string'
+					? parseInt(feedback.options.source, 10)
+					: Number(feedback.options.source)
+			return self.router.state.selectedSource === sourceId
 		},
 	}
 
@@ -69,14 +67,21 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				type: 'dropdown',
 				label: 'Source',
 				id: 'source',
-				default: self.router.sourceNames[0]?.id,
-				choices: self.router.sourceNames,
+				default: self.router.state.sourceNames[0]?.id,
+				choices: self.router.state.sourceNames,
 			},
 		],
 		callback: (feedback) => {
-			const statuses = self.router.currentRoutes()
-			const selectedDestination = self.router.getSelectedDestination()
-			return statuses[selectedDestination - 1] === feedback.options.source
+			const statuses = self.router.state.routes
+			const selectedDestination = self.router.state.selectedDestination
+			if (selectedDestination < 1 || selectedDestination > statuses.length) {
+				return false
+			}
+			const sourceId =
+				typeof feedback.options.source === 'string'
+					? parseInt(feedback.options.source, 10)
+					: Number(feedback.options.source)
+			return statuses[selectedDestination - 1] === sourceId
 		},
 	}
 

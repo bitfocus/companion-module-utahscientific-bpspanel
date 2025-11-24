@@ -2,12 +2,12 @@ import { combineRgb, CompanionPresetDefinitions } from '@companion-module/base'
 import { UtahScientificInstance } from './main.js'
 export function UpdatePresets(self: UtahScientificInstance): void {
 	const presets: CompanionPresetDefinitions = {}
-	for (const i of self.router.sourceNames) {
+	for (const i of self.router.state.sourceNames) {
 		const srcname = i.label
 		const srcid = i.id
 		presets[`source_${srcid}`] = {
 			category: 'Sources (by name)',
-			name: 'Source ' + i,
+			name: `Source ${srcname}`,
 			type: 'button',
 			style: {
 				text: srcname, //self.source_names[i].label,
@@ -52,12 +52,12 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 			],
 		}
 	}
-	for (const i of self.router.destinationNames) {
+	for (const i of self.router.state.destinationNames) {
 		const dstname = i.label
 		const dstid = i.id
 		presets[`destination_${dstid}`] = {
 			category: 'Destinations (by name)',
-			name: 'Destination ' + i,
+			name: `Destination ${dstname}`,
 			type: 'button',
 			style: {
 				text: dstname, //self.source_names[i].label,

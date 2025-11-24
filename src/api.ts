@@ -3,32 +3,38 @@ import { ModuleConfig } from './config.js'
 import { UtahScientificInstance } from './main.js'
 import { InstanceStatus } from '@companion-module/base'
 
+export interface RouterState {
+	selectedSource: number
+	selectedDestination: number
+	sourceNames: Array<{ id: number; label: string }>
+	destinationNames: Array<{ id: number; label: string }>
+	routes: Array<number>
+}
+
 export class UtahScientificAPI {
 	private router: UtahScientificRouter
 	private config: ModuleConfig
 	private instance: UtahScientificInstance
 	private keepAliveInterval?: NodeJS.Timeout
-	public selectedSource: number
-	public selectedDestination: number
-	public sourceNames: Array<{ id: number; label: string }>
-	public destinationNames: Array<{ id: number; label: string }>
-	public status: Array<number>
+	public state: RouterState
 
 	constructor(config: ModuleConfig, instance: UtahScientificInstance) {
 		this.router = new UtahScientificRouter()
 		this.config = config
 		this.instance = instance
-		this.selectedSource = -1
-		this.selectedDestination = -1
-		this.sourceNames = []
-		this.destinationNames = []
-		this.status = []
+		this.state = {
+			selectedSource: -1,
+			selectedDestination: -1,
+			sourceNames: [],
+			destinationNames: [],
+			routes: [],
+		}
 	}
 
-	async connect() {
+	async connect(): Promise<void> {
 		await this.router.connect({
-			host: this.config.host as string,
-			port: this.config.port as number,
+			host: this.config.host,
+			port: this.config.port,
 			protocol: 'RCP-3',
 			options: {
 				//debug: true,
@@ -54,8 +60,9 @@ export class UtahScientificAPI {
 		this.router.on('disconnect', () => {
 			this.instance.log('warn', 'Router disconnected')
 		})
-		this.router.on('error', (error) => {
-			this.instance.log('error', `Router error: ${error}`)
+		this.router.on('error', (error: unknown) => {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			this.instance.log('error', `Router error: ${errorMessage}`)
 		})
 		this.router.on('connect', () => {
 			this.instance.log('info', 'Router connected')
@@ -70,12 +77,13 @@ export class UtahScientificAPI {
 			try {
 				await this.router.getRouterInfo()
 			} catch (error) {
-				this.instance.log('debug', `Keep-alive ping failed: ${error}`)
+				const errorMessage = error instanceof Error ? error.message : String(error)
+				this.instance.log('debug', `Keep-alive ping failed: ${errorMessage}`)
 			}
 		}, 5000)
 	}
 
-	async disconnect() {
+	async disconnect(): Promise<void> {
 		if (this.keepAliveInterval) {
 			clearInterval(this.keepAliveInterval)
 			this.keepAliveInterval = undefined
@@ -85,59 +93,38 @@ export class UtahScientificAPI {
 	}
 
 	//Statuses
-	async getCurrentRoutes() {
+	async getCurrentRoutes(): Promise<Array<number>> {
 		const statuses = await this.router.getStatuses(1, 20)
-		console.log(statuses)
-		this.status = statuses
-		return this.status
+		this.state.routes = statuses
+		return this.state.routes
 	}
 
-	currentRoutes() {
-		return this.status
-	}
-
-	getSelectedSource() {
-		return this.selectedSource
-	}
-
-	getSelectedDestination() {
-		return this.selectedDestination
-	}
-
-	async updateSourceNames() {
+	async updateSourceNames(): Promise<Array<{ id: number; label: string }>> {
 		const names = await this.router.getSourceNames()
-		this.sourceNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
-		return this.sourceNames
+		this.state.sourceNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
+		return this.state.sourceNames
 	}
 
-	getSourceNames() {
-		return this.sourceNames
-	}
-
-	async updateDestinationNames() {
+	async updateDestinationNames(): Promise<Array<{ id: number; label: string }>> {
 		const names = await this.router.getDestinationNames()
-		this.destinationNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
-		return this.destinationNames
-	}
-
-	getDestinationNames() {
-		return this.destinationNames
+		this.state.destinationNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
+		return this.state.destinationNames
 	}
 
 	//Commands
-	selectSource(source: number) {
-		this.selectedSource = source
+	selectSource(source: number): void {
+		this.state.selectedSource = source
 		this.instance.setVariableValues({ source: source })
 		this.instance.checkFeedbacks('selected_source')
 	}
 
-	selectDestination(destination: number) {
-		this.selectedDestination = destination
+	selectDestination(destination: number): void {
+		this.state.selectedDestination = destination
 		this.instance.setVariableValues({ destination: destination })
 		this.instance.checkFeedbacks('selected_dest')
 	}
 
-	async take(input: number, output: number, level: number) {
+	async take(input: number, output: number, level: number): Promise<void> {
 		await this.router.take(input, output, level)
 	}
 }

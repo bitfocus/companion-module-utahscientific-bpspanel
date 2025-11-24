@@ -9,13 +9,19 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					type: 'dropdown',
 					label: 'Source',
 					id: 'source',
-					default: self.router.sourceNames[0]?.id,
-					choices: self.router.sourceNames,
+					default: self.router.state.sourceNames[0]?.id,
+					choices: self.router.state.sourceNames,
 				},
 			],
 
 			callback: (action) => {
-				self.router.selectSource(parseInt(action.options.source as string))
+				const sourceId =
+					typeof action.options.source === 'string'
+						? parseInt(action.options.source, 10)
+						: Number(action.options.source)
+				if (!isNaN(sourceId)) {
+					self.router.selectSource(sourceId)
+				}
 			},
 		},
 		select_dest_name: {
@@ -25,22 +31,26 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					type: 'dropdown',
 					label: 'Destination',
 					id: 'dest',
-					default: self.router.destinationNames[0]?.id,
-					choices: self.router.destinationNames,
+					default: self.router.state.destinationNames[0]?.id,
+					choices: self.router.state.destinationNames,
 				},
 			],
 			callback: (action) => {
-				self.router.selectDestination(parseInt(action.options.dest as string))
+				const destId =
+					typeof action.options.dest === 'string' ? parseInt(action.options.dest, 10) : Number(action.options.dest)
+				if (!isNaN(destId)) {
+					self.router.selectDestination(destId)
+				}
 			},
 		},
 		take: {
 			name: 'Take',
 			options: [],
 			callback: () => {
-				const source = self.router.getSelectedSource()
-				const destination = self.router.getSelectedDestination()
-				if (source && destination) {
-					self.router.take(self.router.getSelectedSource(), self.router.getSelectedDestination(), 1)
+				const source = self.router.state.selectedSource
+				const destination = self.router.state.selectedDestination
+				if (source >= 0 && destination >= 0) {
+					self.router.take(source, destination, 1)
 				} else {
 					self.log('error', 'Source or destination not selected')
 				}
@@ -53,19 +63,29 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					type: 'dropdown',
 					label: 'Source  ',
 					id: 'source',
-					default: self.router.sourceNames[0]?.id,
-					choices: self.router.sourceNames,
+					default: self.router.state.sourceNames[0]?.id,
+					choices: self.router.state.sourceNames,
 				},
 				{
 					type: 'dropdown',
 					label: 'Destination',
 					id: 'destination',
-					default: self.router.destinationNames[0]?.id,
-					choices: self.router.destinationNames,
+					default: self.router.state.destinationNames[0]?.id,
+					choices: self.router.state.destinationNames,
 				},
 			],
 			callback: (action) => {
-				self.router.take(parseInt(action.options.source as string), parseInt(action.options.destination as string), 1)
+				const sourceId =
+					typeof action.options.source === 'string'
+						? parseInt(action.options.source, 10)
+						: Number(action.options.source)
+				const destId =
+					typeof action.options.destination === 'string'
+						? parseInt(action.options.destination, 10)
+						: Number(action.options.destination)
+				if (!isNaN(sourceId) && !isNaN(destId)) {
+					self.router.take(sourceId, destId, 1)
+				}
 			},
 		},
 	})
