@@ -3,14 +3,14 @@ import { UtahScientificInstance } from './main.js'
 export function UpdatePresets(self: UtahScientificInstance): void {
 	const presets: CompanionPresetDefinitions = {}
 	for (const i of self.router.state.sourceNames) {
-		const srcname = i.label
-		const srcid = i.id
-		presets[`source_${srcid}`] = {
+		const sourceName = i.label
+		const sourceId = i.id
+		presets[`source_${sourceId}`] = {
 			category: 'Sources (by name)',
-			name: `Source ${srcname}`,
+			name: `Source ${sourceName}`,
 			type: 'button',
 			style: {
-				text: srcname, //self.source_names[i].label,
+				text: '$(bpspanel:source_' + sourceId + '_name)',
 				size: '14',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -21,7 +21,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 						{
 							actionId: 'select_source_name',
 							options: {
-								source: srcid,
+								source: sourceId,
 							},
 						},
 					],
@@ -32,7 +32,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 				{
 					feedbackId: 'selected_source',
 					options: {
-						source: srcid,
+						source: sourceId,
 					},
 					style: {
 						color: combineRgb(0, 0, 0),
@@ -42,7 +42,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 				{
 					feedbackId: 'source_dest_route',
 					options: {
-						source: srcid,
+						source: sourceId,
 					},
 					style: {
 						color: combineRgb(0, 0, 0),
@@ -53,14 +53,14 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 		}
 	}
 	for (const i of self.router.state.destinationNames) {
-		const dstname = i.label
-		const dstid = i.id
-		presets[`destination_${dstid}`] = {
+		const destinationName = i.label
+		const destinationId = i.id
+		presets[`destination_${destinationId}`] = {
 			category: 'Destinations (by name)',
-			name: `Destination ${dstname}`,
+			name: `Destination ${destinationName}`,
 			type: 'button',
 			style: {
-				text: dstname, //self.source_names[i].label,
+				text: '$(bpspanel:destination_' + destinationId + '_name)',
 				size: '14',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -71,7 +71,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 						{
 							actionId: 'select_dest_name',
 							options: {
-								dest: dstid,
+								dest: destinationId,
 							},
 						},
 					],
@@ -82,7 +82,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 				{
 					feedbackId: 'selected_dest',
 					options: {
-						dest: dstid,
+						dest: destinationId,
 					},
 					style: {
 						color: combineRgb(0, 0, 0),
