@@ -4,3 +4,4 @@
 /*.tgz
 /.yarn
 DEBUG-*
+.DS_Store

@@ -19,6 +19,12 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 		this.config = config
 		this.updateStatus(InstanceStatus.Connecting)
 
+		if (!this.config.host || !this.config.port) {
+			this.log('error', 'Host or port is not configured')
+			this.updateStatus(InstanceStatus.BadConfig)
+			return
+		}
+
 		this.router = new UtahScientificAPI(this.config, this)
 		try {
 			await this.router.connect()

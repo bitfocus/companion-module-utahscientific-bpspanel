@@ -32,6 +32,9 @@ export class UtahScientificAPI {
 	}
 
 	async connect(): Promise<void> {
+		// Attach event handlers early so connection errors are caught and logged
+		this.setupEventHandlers()
+
 		await this.router.connect({
 			host: this.config.host,
 			port: this.config.port,
@@ -46,12 +49,13 @@ export class UtahScientificAPI {
 		// Parallelize independent operations
 		await Promise.all([this.getCurrentRoutes(), this.updateSourceNames(), this.updateDestinationNames()])
 		this.instance.updateModuleComponents()
-
-		this.setupEventHandlers()
 		this.startKeepAlive()
 	}
 
 	private setupEventHandlers(): void {
+		// Ensure only one set of listeners exists per router instance
+		this.router.removeAllListeners()
+
 		this.router.on('status', async (_output, _input, _level) => {
 			await this.getCurrentRoutes()
 			this.instance.checkFeedbacks('source_dest_route')
