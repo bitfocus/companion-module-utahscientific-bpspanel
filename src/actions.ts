@@ -102,5 +102,46 @@ export function UpdateActions(self: UtahScientificInstance): void {
 				}
 			},
 		},
+		set_lock: {
+			name: 'Set Lock',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Destination',
+					id: 'destination',
+					default: self.router.state.destinationNames[0]?.id,
+					choices: self.router.state.destinationNames,
+				},
+				{
+					type: 'dropdown',
+					label: 'Lock Status',
+					id: 'lock',
+					default: 'unlock',
+					choices: [
+						{ id: 'toggle', label: 'Toggle' },
+						{ id: 'unlock', label: 'Unlock' },
+						{ id: 'lock', label: 'Lock' },
+					],
+				},
+			],
+			callback: (action) => {
+				const destId =
+					typeof action.options.destination === 'string'
+						? parseInt(action.options.destination, 10)
+						: Number(action.options.destination)
+				const lock = action.options.lock
+				if (!isNaN(destId)) {
+					if (lock === 'toggle') {
+						console.log(destId)
+						const lockState = self.router.state.locks[destId - 1]
+						console.log(lockState)
+						if (lockState === undefined) return
+						self.router.setLock(destId, !lockState)
+					} else {
+						self.router.setLock(destId, lock === 'lock')
+					}
+				}
+			},
+		},
 	})
 }

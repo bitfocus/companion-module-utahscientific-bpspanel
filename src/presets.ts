@@ -126,12 +126,13 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 	for (const i of self.router.state.destinationNames) {
 		const destinationName = i.label
 		const destinationId = i.id
+		const destinatonVariable = '$(bpspanel:destination_' + destinationId + '_name)'
 		presets[`destination_${destinationId}`] = {
 			category: 'Destinations',
 			name: `Destination ${destinationName}`,
 			type: 'button',
 			style: {
-				text: '$(bpspanel:destination_' + destinationId + '_name)',
+				text: destinatonVariable,
 				size: '14',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -158,6 +159,17 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 					style: {
 						color: combineRgb(0, 0, 0),
 						bgcolor: combineRgb(102, 255, 102),
+					},
+				},
+				{
+					feedbackId: 'destination_locked',
+					options: {
+						dest: destinationId,
+					},
+					style: {
+						color: combineRgb(0, 0, 0),
+						bgcolor: combineRgb(153, 0, 0),
+						text: `${destinatonVariable} LOCKED`,
 					},
 				},
 			],

@@ -85,5 +85,30 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 		},
 	}
 
+	feedbacks['destination_locked'] = {
+		type: 'boolean',
+		name: 'Destination Locked',
+		description: 'Change style when a destination is locked',
+		defaultStyle: {
+			bgcolor: combineRgb(153, 0, 0),
+		},
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Destination',
+				id: 'dest',
+				default: self.router.state.destinationNames[0]?.id,
+				choices: self.router.state.destinationNames,
+			},
+		],
+		callback: (feedback) => {
+			const destId =
+				typeof feedback.options.dest === 'string' ? parseInt(feedback.options.dest, 10) : Number(feedback.options.dest)
+			const lockState = self.router.state.locks[destId - 1]
+			// Assuming truthy is locked
+			return !!lockState
+		},
+	}
+
 	self.setFeedbackDefinitions(feedbacks)
 }

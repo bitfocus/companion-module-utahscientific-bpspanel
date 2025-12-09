@@ -1,4 +1,4 @@
-import { UtahScientificRouter } from 'utahscientific-rscp'
+import { UtahScientificRouter, LockType } from 'utahscientific-rscp'
 import { ModuleConfig } from './config.js'
 import { UtahScientificInstance } from './main.js'
 import { InstanceStatus } from '@companion-module/base'
@@ -9,6 +9,11 @@ export interface RouterState {
 	sourceNames: Array<{ id: number; label: string }>
 	destinationNames: Array<{ id: number; label: string }>
 	routes: Array<number>
+	locks: Array<boolean | undefined>
+	routerInfo: {
+		maxSources: number
+		maxDestinations: number
+	}
 }
 
 export class UtahScientificAPI {
@@ -28,11 +33,15 @@ export class UtahScientificAPI {
 			sourceNames: [],
 			destinationNames: [],
 			routes: [],
+			locks: [],
+			routerInfo: {
+				maxDestinations: 0,
+				maxSources: 0,
+			},
 		}
 	}
 
 	async connect(): Promise<void> {
-		// Attach event handlers early so connection errors are caught and logged
 		this.setupEventHandlers()
 
 		await this.router.connect({
@@ -44,10 +53,15 @@ export class UtahScientificAPI {
 			},
 		})
 		this.instance.updateStatus(InstanceStatus.Ok)
-		await this.router.getRouterInfo()
+		this.state.routerInfo = await this.router.getRouterInfo()
 
 		// Parallelize independent operations
-		await Promise.all([this.getCurrentRoutes(), this.updateSourceNames(), this.updateDestinationNames()])
+		await Promise.all([
+			this.getCurrentRoutes(),
+			this.updateSourceNames(),
+			this.updateDestinationNames(),
+			this.getLockStatuses(),
+		])
 		this.instance.updateModuleComponents()
 		this.startKeepAlive()
 	}
@@ -98,9 +112,30 @@ export class UtahScientificAPI {
 
 	//Statuses
 	async getCurrentRoutes(): Promise<Array<number>> {
-		const statuses = await this.router.getStatuses(1, 20)
+		const statuses = await this.router.getStatuses(1, this.state.routerInfo.maxDestinations)
 		this.state.routes = statuses
 		return this.state.routes
+	}
+
+	async getLockStatuses(): Promise<Array<boolean | undefined>> {
+		try {
+			const allLocks = await this.router.getAllLocks(1, this.state.routerInfo.maxDestinations)
+
+			// Reset locks array
+			this.state.locks = new Array(this.state.routerInfo.maxDestinations).fill(false)
+
+			for (let i = 0; i < allLocks.length; i++) {
+				const lockItem = allLocks[i]
+				const isLocked = lockItem.isLocked
+
+				this.state.locks[i] = isLocked
+				this.instance.setVariableValues({ [`destination_${i + 1}_locked`]: isLocked ? 'Locked' : 'Unlocked' })
+			}
+		} catch (e) {
+			this.instance.log('warn', `Failed to fetch all locks: ${e}`)
+		}
+		this.instance.checkFeedbacks('destination_locked')
+		return this.state.locks
 	}
 
 	async updateSourceNames(): Promise<Array<{ id: number; label: string }>> {
@@ -126,6 +161,21 @@ export class UtahScientificAPI {
 		this.state.selectedDestination = destination
 		this.instance.setVariableValues({ destination: destination })
 		this.instance.checkFeedbacks('selected_dest')
+	}
+
+	async setLock(destination: number, lock: boolean): Promise<void> {
+		const status = lock ? LockType.Lock : LockType.Unlock
+		await this.router.setLock(destination, status)
+		try {
+			const lockState = await this.router.getLock(destination)
+			this.state.locks[destination - 1] = lockState?.isLocked || false
+			this.instance.checkFeedbacks('destination_locked')
+			this.instance.setVariableValues({
+				[`destination_${destination}_locked`]: this.state.locks[destination - 1] ? 'Locked' : 'Unlocked',
+			})
+		} catch {
+			this.instance.log('debug', 'Failed to fetch lock status')
+		}
 	}
 
 	async take(input: number, output: number, level: number): Promise<void> {
