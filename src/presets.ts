@@ -105,7 +105,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 		name: `Take Button`,
 		type: 'button',
 		style: {
-			text: 'Take',
+			text: 'TAKE',
 			size: '14',
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(0, 0, 0),
@@ -170,6 +170,44 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 						color: combineRgb(0, 0, 0),
 						bgcolor: combineRgb(153, 0, 0),
 						text: `${destinatonVariable} LOCKED`,
+					},
+				},
+			],
+		}
+		presets[`lock_destination_${destinationId}`] = {
+			category: 'Locks',
+			name: `Lock Destination ${destinationName}`,
+			type: 'button',
+			style: {
+				text: 'LOCK ' + destinatonVariable,
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'set_lock',
+							options: {
+								destination: destinationId,
+								lock: 'toggle',
+							},
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [
+				{
+					feedbackId: 'destination_locked',
+					options: {
+						dest: destinationId,
+					},
+					style: {
+						color: combineRgb(0, 0, 0),
+						bgcolor: combineRgb(153, 0, 0),
+						text: `UNLOCK ${destinatonVariable}`,
 					},
 				},
 			],

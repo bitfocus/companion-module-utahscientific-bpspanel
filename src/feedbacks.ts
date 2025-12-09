@@ -105,7 +105,6 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 			const destId =
 				typeof feedback.options.dest === 'string' ? parseInt(feedback.options.dest, 10) : Number(feedback.options.dest)
 			const lockState = self.router.state.locks[destId - 1]
-			// Assuming truthy is locked
 			return !!lockState
 		},
 	}
