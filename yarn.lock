@@ -2662,16 +2662,16 @@ __metadata:
     rimraf: "npm:^6.1.2"
     typescript: "npm:^5.9.3"
     typescript-eslint: "npm:^8.49.0"
-    utahscientific-rscp: "file:/Users/bryce/Development/bitfocus/utahscientific-rscp"
+    utahscientific-rscp: "git+ssh://git@github.com/bitfocusas/utahscientific-rscp#wip/additionalFeatures"
   languageName: unknown
   linkType: soft
 
-"utahscientific-rscp@file:/Users/bryce/Development/bitfocus/utahscientific-rscp::locator=utahscientific-bpspanel%40workspace%3A.":
+"utahscientific-rscp@git+ssh://git@github.com/bitfocusas/utahscientific-rscp#wip/additionalFeatures":
   version: 0.1.0
-  resolution: "utahscientific-rscp@file:/Users/bryce/Development/bitfocus/utahscientific-rscp#/Users/bryce/Development/bitfocus/utahscientific-rscp::hash=0cd0d4&locator=utahscientific-bpspanel%40workspace%3A."
+  resolution: "utahscientific-rscp@git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=1e6d7ffc2e018112bef00bad89a924aaa9c93b04"
   peerDependencies:
     typescript: ^5
-  checksum: 10c0/4d5bfb31bc469881d11a35248d46d74295e4680f9ecac8878ccd1f81744e16cd96906a91e815655bebed5e1d2cdb6c608bfedd3c1cdcfbe2f8bc5241a4177fb5
+  checksum: 10c0/c352c1e73fc7ab9aefdadd42fbc0348608134d7c0f1f6f66e14c0fd952b00f0cfd507ceb354ef1b6dc223c82fbef55ebaac380638a1dcc46d9c6f2e91d53272e
   languageName: node
   linkType: hard
 

@@ -20,7 +20,7 @@
 	},
 	"dependencies": {
 		"@companion-module/base": "~1.13.5",
-		"utahscientific-rscp": "file:/Users/bryce/Development/bitfocus/utahscientific-rscp"
+		"utahscientific-rscp": "git+ssh://git@github.com/bitfocusas/utahscientific-rscp#wip/additionalFeatures"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.4.2",
