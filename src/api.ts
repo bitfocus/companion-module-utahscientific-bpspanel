@@ -21,6 +21,10 @@ export class UtahScientificAPI {
 	private config: ModuleConfig
 	private instance: UtahScientificInstance
 	private keepAliveInterval?: NodeJS.Timeout
+	private reconnectTimer?: NodeJS.Timeout
+	private reconnectAttempt = 0
+	private isDestroyed = false
+	private connected = false
 	public state: RouterState
 
 	constructor(config: ModuleConfig, instance: UtahScientificInstance) {
@@ -42,28 +46,38 @@ export class UtahScientificAPI {
 	}
 
 	async connect(): Promise<void> {
+		if (this.isDestroyed) return
 		this.setupEventHandlers()
 
-		await this.router.connect({
-			host: this.config.host,
-			port: this.config.port,
-			protocol: 'RCP-3',
-			options: {
-				//debug: true,
-			},
-		})
-		this.instance.updateStatus(InstanceStatus.Ok)
-		this.state.routerInfo = await this.router.getRouterInfo()
+		try {
+			await this.router.connect({
+				host: this.config.host,
+				port: this.config.port,
+				protocol: 'RCP-3',
+				options: {
+					//debug: true,
+				},
+			})
+			this.connected = true
+			this.instance.updateStatus(InstanceStatus.Ok)
+			this.reconnectAttempt = 0 // Reset attempt counter on success
+			this.state.routerInfo = await this.router.getRouterInfo()
 
-		// Parallelize independent operations
-		await Promise.all([
-			this.getCurrentRoutes(),
-			this.updateSourceNames(),
-			this.updateDestinationNames(),
-			this.getLockStatuses(),
-		])
-		this.instance.updateModuleComponents()
-		this.startKeepAlive()
+			// Parallelize independent operations
+			await Promise.all([
+				this.getCurrentRoutes(),
+				this.updateSourceNames(),
+				this.updateDestinationNames(),
+				this.getLockStatuses(),
+			])
+			this.instance.updateModuleComponents()
+			this.startKeepAlive()
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			this.instance.log('error', `Connection failed: ${errorMessage}`)
+			this.instance.updateStatus(InstanceStatus.ConnectionFailure, errorMessage)
+			this.scheduleReconnect()
+		}
 	}
 
 	private setupEventHandlers(): void {
@@ -81,37 +95,70 @@ export class UtahScientificAPI {
 			this.instance.checkFeedbacks('source_dest_route')
 		})
 		this.router.on('disconnect', () => {
+			this.connected = false
 			this.instance.log('warn', 'Router disconnected')
+			this.instance.updateStatus(InstanceStatus.Disconnected)
+			this.scheduleReconnect()
 		})
 		this.router.on('error', (error: unknown) => {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			this.instance.log('error', `Router error: ${errorMessage}`)
 			this.instance.updateStatus(InstanceStatus.ConnectionFailure)
+
+			if (!this.connected) {
+				this.scheduleReconnect()
+			}
 		})
 		this.router.on('connect', () => {
+			this.connected = true
 			this.instance.log('info', 'Router connected')
+			this.instance.updateStatus(InstanceStatus.Ok)
 		})
 		this.router.on('reconnect', () => {
-			this.instance.log('debug', 'Router reconnected')
+			this.instance.log('info', 'Router reconnected')
 		})
 	}
 
+	private scheduleReconnect(): void {
+		if (this.reconnectTimer || this.isDestroyed) return
+
+		const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempt), 30000) // Backoff: 1s, 2s, 4s... max 30s
+		this.reconnectAttempt++
+
+		this.instance.log('info', `Reconnecting in ${delay / 1000}s (Attempt ${this.reconnectAttempt})...`)
+		this.reconnectTimer = setTimeout(() => {
+			this.reconnectTimer = undefined
+			this.connect().catch((e) => {
+				this.instance.log('debug', `Reconnection attempt failed: ${e}`)
+			})
+		}, delay)
+	}
+
 	private startKeepAlive(): void {
+		if (this.keepAliveInterval) clearInterval(this.keepAliveInterval)
+
 		this.keepAliveInterval = setInterval(async () => {
+			if (this.isDestroyed) return
 			try {
 				await this.router.getRouterInfo()
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				this.instance.updateStatus(InstanceStatus.ConnectionFailure)
 				this.instance.log('debug', `Keep-alive ping failed: ${errorMessage}`)
+				this.scheduleReconnect()
 			}
 		}, 5000)
 	}
 
 	async disconnect(): Promise<void> {
+		this.isDestroyed = true
 		if (this.keepAliveInterval) {
 			clearInterval(this.keepAliveInterval)
 			this.keepAliveInterval = undefined
+		}
+		if (this.reconnectTimer) {
+			clearTimeout(this.reconnectTimer)
+			this.reconnectTimer = undefined
 		}
 		this.router.removeAllListeners()
 		await this.router.disconnect()
@@ -123,7 +170,7 @@ export class UtahScientificAPI {
 			const statuses = await this.router.getStatuses(1, this.state.routerInfo.maxDestinations)
 			this.state.routes = statuses
 		} catch (e) {
-			this.instance.log('error', `Failed to get current routes: ${e}`)
+			this.instance.log('warn', `Failed to get current routes: ${e}`)
 		}
 		return this.state.routes
 	}
@@ -154,7 +201,7 @@ export class UtahScientificAPI {
 			const names = await this.router.getSourceNames()
 			this.state.sourceNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
 		} catch (e) {
-			this.instance.log('error', `Failed to update source names: ${e}`)
+			this.instance.log('warn', `Failed to update source names: ${e}`)
 		}
 		return this.state.sourceNames
 	}
@@ -164,7 +211,7 @@ export class UtahScientificAPI {
 			const names = await this.router.getDestinationNames()
 			this.state.destinationNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
 		} catch (e) {
-			this.instance.log('error', `Failed to update destination names: ${e}`)
+			this.instance.log('warn', `Failed to update destination names: ${e}`)
 		}
 		return this.state.destinationNames
 	}
@@ -199,14 +246,29 @@ export class UtahScientificAPI {
 
 	async take(input: number, output: number, level: number): Promise<void> {
 		try {
-			await this.router.take(input, output, level)
+			const success = await this.router.take(input, output, level)
+			if (!success) {
+				this.instance.log('warn', `Router reported failed take for input ${input} to output ${output}`)
+				return
+			}
+
+			// Verify the route actually happened
+			const currentInput = await this.router.getStatus(output)
+			if (currentInput !== input) {
+				this.instance.log(
+					'warn',
+					`Route verification failed: Expected input ${input} for output ${output}, but got ${currentInput}`,
+				)
+				return
+			}
+
 			this.state.selectedSource = -1
 			this.instance.setVariableValues({
 				source: -1,
 			})
 			this.instance.checkFeedbacks('selected_source', 'selected_dest', 'source_dest_route')
 		} catch (error) {
-			this.instance.log('error', `Failed to take route: ${error}`)
+			this.instance.log('warn', `Failed to take route: ${error}`)
 		}
 	}
 }

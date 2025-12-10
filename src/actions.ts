@@ -21,7 +21,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 				},
 			],
 
-			callback: (action) => {
+			callback: async (action) => {
 				const sourceId =
 					typeof action.options.source === 'string'
 						? parseInt(action.options.source, 10)
@@ -30,7 +30,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					self.router.selectSource(sourceId)
 					if (action.options.take) {
 						if (self.router.state.selectedDestination >= 0) {
-							self.router.take(sourceId, self.router.state.selectedDestination, 1)
+							await self.router.take(sourceId, self.router.state.selectedDestination, 1)
 						} else {
 							self.log('warn', 'Destination not selected')
 						}
@@ -49,7 +49,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					choices: self.router.state.destinationNames,
 				},
 			],
-			callback: (action) => {
+			callback: async (action) => {
 				const destId =
 					typeof action.options.dest === 'string' ? parseInt(action.options.dest, 10) : Number(action.options.dest)
 				if (!isNaN(destId)) {
@@ -60,13 +60,13 @@ export function UpdateActions(self: UtahScientificInstance): void {
 		take: {
 			name: 'Take',
 			options: [],
-			callback: () => {
+			callback: async () => {
 				const source = self.router.state.selectedSource
 				const destination = self.router.state.selectedDestination
 				if (source >= 0 && destination >= 0) {
-					self.router.take(source, destination, 1)
+					return await self.router.take(source, destination, 1)
 				} else {
-					self.log('error', 'Source or destination not selected')
+					self.log('warn', 'Source or destination not selected')
 				}
 			},
 		},
@@ -88,7 +88,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					choices: self.router.state.destinationNames,
 				},
 			],
-			callback: (action) => {
+			callback: async (action) => {
 				const sourceId =
 					typeof action.options.source === 'string'
 						? parseInt(action.options.source, 10)
@@ -98,7 +98,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 						? parseInt(action.options.destination, 10)
 						: Number(action.options.destination)
 				if (!isNaN(sourceId) && !isNaN(destId)) {
-					self.router.take(sourceId, destId, 1)
+					return await self.router.take(sourceId, destId, 1)
 				}
 			},
 		},
@@ -124,7 +124,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					],
 				},
 			],
-			callback: (action) => {
+			callback: async (action) => {
 				const destId =
 					typeof action.options.destination === 'string'
 						? parseInt(action.options.destination, 10)
@@ -132,13 +132,11 @@ export function UpdateActions(self: UtahScientificInstance): void {
 				const lock = action.options.lock
 				if (!isNaN(destId)) {
 					if (lock === 'toggle') {
-						console.log(destId)
 						const lockState = self.router.state.locks[destId - 1]
-						console.log(lockState)
 						if (lockState === undefined) return
-						self.router.setLock(destId, !lockState)
+						return await self.router.setLock(destId, !lockState)
 					} else {
-						self.router.setLock(destId, lock === 'lock')
+						return await self.router.setLock(destId, lock === 'lock')
 					}
 				}
 			},
