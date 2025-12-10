@@ -74,7 +74,9 @@ export class UtahScientificAPI {
 			this.startKeepAlive()
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			this.instance.log('error', `Connection failed: ${errorMessage}`)
+			if (this.connected) {
+				this.instance.log('error', `Connection failed: ${errorMessage}`)
+			}
 			this.instance.updateStatus(InstanceStatus.ConnectionFailure, errorMessage)
 			this.scheduleReconnect()
 		}
@@ -102,7 +104,9 @@ export class UtahScientificAPI {
 		})
 		this.router.on('error', (error: unknown) => {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			this.instance.log('error', `Router error: ${errorMessage}`)
+			if (this.connected) {
+				this.instance.log('error', `Router error: ${errorMessage}`)
+			}
 			this.instance.updateStatus(InstanceStatus.ConnectionFailure)
 
 			if (!this.connected) {
@@ -125,7 +129,7 @@ export class UtahScientificAPI {
 		const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempt), 30000) // Backoff: 1s, 2s, 4s... max 30s
 		this.reconnectAttempt++
 
-		this.instance.log('info', `Reconnecting in ${delay / 1000}s (Attempt ${this.reconnectAttempt})...`)
+		this.instance.log('debug', `Reconnecting in ${delay / 1000}s (Attempt ${this.reconnectAttempt})...`)
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectTimer = undefined
 			this.connect().catch((e) => {
@@ -245,6 +249,11 @@ export class UtahScientificAPI {
 	}
 
 	async take(input: number, output: number, level: number): Promise<void> {
+		if (this.state.locks[output - 1]) {
+			this.instance.log('warn', `Cannot route to destination ${output} because it is locked`)
+			return
+		}
+
 		try {
 			const success = await this.router.take(input, output, level)
 			if (!success) {
