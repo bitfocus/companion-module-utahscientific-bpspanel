@@ -30,7 +30,7 @@ export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 			{ variableId: `destination_${id}_name`, name: `Destination ${id} - Label` },
 			{ variableId: `destination_${id}_source_name`, name: `Destination ${id} - Current Source Name` },
 			{ variableId: `destination_${id}_source_id`, name: `Destination ${id} - Current Source ID` },
-			{ variableId: `destination_${id}_locked`, name: `Destination ${id} - Locked` },
+			{ variableId: `destination_${id}_lock_state`, name: `Destination ${id} - Lock State` },
 		)
 	}
 
@@ -53,7 +53,7 @@ export function UpdateVariables(self: UtahScientificInstance): void {
 	for (const destination of destinationNames) {
 		self.setVariableValues({ [`destination_${destination.id}_name`]: destination.label })
 		const lockState = self.router.state.locks[destination.id - 1]
-		self.setVariableValues({ [`destination_${destination.id}_locked`]: lockState ? 'Locked' : 'Unlocked' })
+		self.setVariableValues({ [`destination_${destination.id}_lock_state`]: lockState ? 'Locked' : 'Unlocked' })
 	}
 
 	const selectedSource = self.router.state.selectedSource

@@ -191,7 +191,7 @@ export class UtahScientificAPI {
 				const isLocked = lockItem.isLocked
 
 				this.state.locks[i] = isLocked
-				this.instance.setVariableValues({ [`destination_${i + 1}_locked`]: isLocked ? 'Locked' : 'Unlocked' })
+				this.instance.setVariableValues({ [`destination_${i + 1}_lock_state`]: isLocked ? 'Locked' : 'Unlocked' })
 			}
 		} catch (e) {
 			this.instance.log('warn', `Failed to fetch all locks: ${e}`)
@@ -241,7 +241,7 @@ export class UtahScientificAPI {
 			this.state.locks[destination - 1] = lockState?.isLocked || false
 			this.instance.checkFeedbacks('destination_locked')
 			this.instance.setVariableValues({
-				[`destination_${destination}_locked`]: this.state.locks[destination - 1] ? 'Locked' : 'Unlocked',
+				[`destination_${destination}_lock_state`]: this.state.locks[destination - 1] ? 'Locked' : 'Unlocked',
 			})
 		} catch (e) {
 			this.instance.log('warn', `Failed to set/fetch lock status: ${e}`)
