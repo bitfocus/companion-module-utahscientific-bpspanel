@@ -70,10 +70,16 @@ export class UtahScientificAPI {
 		// Ensure only one set of listeners exists per router instance
 		this.router.removeAllListeners()
 
-		this.router.on('status', async (_output, _input, _level) => {
-			await this.getCurrentRoutes()
+		this.router.on('status', (output, input, _level) => {
+			this.state.routes[output] = input
+
+			const sourceName = this.state.sourceNames.find((source) => source.id === input)?.label ?? 'Unknown'
+			this.instance.setVariableValues({
+				[`destination_${output}_source_id`]: input,
+				[`destination_${output}_source_name`]: sourceName,
+			})
 			this.instance.checkFeedbacks('source_dest_route')
-			this.instance.updateVariables()
+
 		})
 		this.router.on('disconnect', () => {
 			this.instance.log('warn', 'Router disconnected')
@@ -180,5 +186,11 @@ export class UtahScientificAPI {
 
 	async take(input: number, output: number, level: number): Promise<void> {
 		await this.router.take(input, output, level)
+		this.state.selectedSource = -1
+		this.instance.setVariableValues({
+			source: -1,
+		})
+		this.instance.checkFeedbacks('selected_source')
+		this.instance.checkFeedbacks('selected_dest')
 	}
 }
