@@ -79,7 +79,6 @@ export class UtahScientificAPI {
 				[`destination_${output}_source_name`]: sourceName,
 			})
 			this.instance.checkFeedbacks('source_dest_route')
-
 		})
 		this.router.on('disconnect', () => {
 			this.instance.log('warn', 'Router disconnected')
@@ -87,6 +86,7 @@ export class UtahScientificAPI {
 		this.router.on('error', (error: unknown) => {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			this.instance.log('error', `Router error: ${errorMessage}`)
+			this.instance.updateStatus(InstanceStatus.ConnectionFailure)
 		})
 		this.router.on('connect', () => {
 			this.instance.log('info', 'Router connected')
@@ -102,6 +102,7 @@ export class UtahScientificAPI {
 				await this.router.getRouterInfo()
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : String(error)
+				this.instance.updateStatus(InstanceStatus.ConnectionFailure)
 				this.instance.log('debug', `Keep-alive ping failed: ${errorMessage}`)
 			}
 		}, 5000)
@@ -118,8 +119,12 @@ export class UtahScientificAPI {
 
 	//Statuses
 	async getCurrentRoutes(): Promise<Array<number>> {
-		const statuses = await this.router.getStatuses(1, this.state.routerInfo.maxDestinations)
-		this.state.routes = statuses
+		try {
+			const statuses = await this.router.getStatuses(1, this.state.routerInfo.maxDestinations)
+			this.state.routes = statuses
+		} catch (e) {
+			this.instance.log('error', `Failed to get current routes: ${e}`)
+		}
 		return this.state.routes
 	}
 
@@ -145,14 +150,22 @@ export class UtahScientificAPI {
 	}
 
 	async updateSourceNames(): Promise<Array<{ id: number; label: string }>> {
-		const names = await this.router.getSourceNames()
-		this.state.sourceNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
+		try {
+			const names = await this.router.getSourceNames()
+			this.state.sourceNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
+		} catch (e) {
+			this.instance.log('error', `Failed to update source names: ${e}`)
+		}
 		return this.state.sourceNames
 	}
 
 	async updateDestinationNames(): Promise<Array<{ id: number; label: string }>> {
-		const names = await this.router.getDestinationNames()
-		this.state.destinationNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
+		try {
+			const names = await this.router.getDestinationNames()
+			this.state.destinationNames = Array.from(names.entries()).map(([id, name]) => ({ id, label: name }))
+		} catch (e) {
+			this.instance.log('error', `Failed to update destination names: ${e}`)
+		}
 		return this.state.destinationNames
 	}
 
@@ -171,26 +184,30 @@ export class UtahScientificAPI {
 
 	async setLock(destination: number, lock: boolean): Promise<void> {
 		const status = lock ? LockType.Lock : LockType.Unlock
-		await this.router.setLock(destination, status)
 		try {
+			await this.router.setLock(destination, status)
 			const lockState = await this.router.getLock(destination)
 			this.state.locks[destination - 1] = lockState?.isLocked || false
 			this.instance.checkFeedbacks('destination_locked')
 			this.instance.setVariableValues({
 				[`destination_${destination}_locked`]: this.state.locks[destination - 1] ? 'Locked' : 'Unlocked',
 			})
-		} catch {
-			this.instance.log('debug', 'Failed to fetch lock status')
+		} catch (e) {
+			this.instance.log('warn', `Failed to set/fetch lock status: ${e}`)
 		}
 	}
 
 	async take(input: number, output: number, level: number): Promise<void> {
-		await this.router.take(input, output, level)
-		this.state.selectedSource = -1
-		this.instance.setVariableValues({
-			source: -1,
-		})
-		this.instance.checkFeedbacks('selected_source')
-		this.instance.checkFeedbacks('selected_dest')
+		try {
+			await this.router.take(input, output, level)
+			this.state.selectedSource = -1
+			this.instance.setVariableValues({
+				source: -1,
+			})
+			this.instance.checkFeedbacks('selected_source')
+			this.instance.checkFeedbacks('selected_dest')
+		} catch (error) {
+			this.instance.log('error', `Failed to take route: ${error}`)
+		}
 	}
 }
