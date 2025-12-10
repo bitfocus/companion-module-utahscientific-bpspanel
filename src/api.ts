@@ -181,7 +181,7 @@ export class UtahScientificAPI {
 
 	async getLockStatuses(): Promise<Array<boolean | undefined>> {
 		try {
-			const allLocks = await this.router.getAllLocks(1, this.state.routerInfo.maxDestinations)
+			const allLocks = await this.router.getLockStatuses(1, this.state.routerInfo.maxDestinations)
 
 			// Reset locks array
 			this.state.locks = new Array(this.state.routerInfo.maxDestinations).fill(false)
