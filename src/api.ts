@@ -179,7 +179,7 @@ export class UtahScientificAPI {
 	selectDestination(destination: number): void {
 		this.state.selectedDestination = destination
 		this.instance.setVariableValues({ destination: destination })
-		this.instance.checkFeedbacks('selected_dest')
+		this.instance.checkFeedbacks('selected_dest', 'source_dest_route')
 	}
 
 	async setLock(destination: number, lock: boolean): Promise<void> {
@@ -204,8 +204,7 @@ export class UtahScientificAPI {
 			this.instance.setVariableValues({
 				source: -1,
 			})
-			this.instance.checkFeedbacks('selected_source')
-			this.instance.checkFeedbacks('selected_dest')
+			this.instance.checkFeedbacks('selected_source', 'selected_dest', 'source_dest_route')
 		} catch (error) {
 			this.instance.log('error', `Failed to take route: ${error}`)
 		}

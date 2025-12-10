@@ -81,7 +81,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				typeof feedback.options.source === 'string'
 					? parseInt(feedback.options.source, 10)
 					: Number(feedback.options.source)
-			return statuses[selectedDestination - 1] === sourceId
+			return statuses[selectedDestination] === sourceId
 		},
 	}
 
