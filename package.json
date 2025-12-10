@@ -19,12 +19,12 @@
 		"url": "git+https://github.com/bitfocus/companion-module-utahscientific-bpspanel.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.13.5",
-		"utahscientific-rscp": "git+ssh://git@github.com/bitfocusas/utahscientific-rscp#wip/additionalFeatures"
+		"@companion-module/base": "~1.14.0",
+		"utahscientific-rscp": "git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=66c61810cdac43460fbb7cb49243d24aeedce0fd"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.4.2",
-		"@types/node": "^24.10.1",
+		"@types/node": "^24.10.2",
 		"eslint": "^9.39.1",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.2.7",
@@ -45,5 +45,5 @@
 			"yarn lint:raw --fix"
 		]
 	},
-	"packageManager": "yarn@4.11.0"
+	"packageManager": "yarn@4.12.0"
 }
