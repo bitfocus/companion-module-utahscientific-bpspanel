@@ -26,13 +26,22 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 		}
 
 		this.router = new UtahScientificAPI(this.config, this)
+
+		// Start the connection process but don't await it here to prevent init from timing out
+		this.connectRouter().catch((e) => {
+			this.log('error', `Error connecting to router: ${e}`)
+			this.updateStatus(InstanceStatus.ConnectionFailure)
+		})
+	}
+
+	private async connectRouter(): Promise<void> {
 		try {
 			await this.router.connect()
 			this.updateModuleComponents()
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			this.log('error', `Failed to connect to router: ${errorMessage}`)
-			this.updateStatus(InstanceStatus.Disconnected)
+			this.updateStatus(InstanceStatus.ConnectionFailure)
 		}
 	}
 
