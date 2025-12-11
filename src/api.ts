@@ -96,6 +96,12 @@ export class UtahScientificAPI {
 			})
 			this.instance.checkFeedbacks('source_dest_route')
 		})
+		this.router.on('lock', (output, locked) => {
+			const isLocked = locked?.isLocked
+			this.state.locks[output - 1] = isLocked
+			this.instance.setVariableValues({ [`destination_${output}_lock_state`]: isLocked ? 'Locked' : 'Unlocked' })
+			this.instance.checkFeedbacks('destination_locked')
+		})
 		this.router.on('disconnect', () => {
 			this.connected = false
 			this.instance.log('warn', 'Router disconnected')
@@ -113,7 +119,7 @@ export class UtahScientificAPI {
 				this.scheduleReconnect()
 			}
 		})
-		this.router.on('connect', () => {
+		this.router.on('connected', () => {
 			this.connected = true
 			this.instance.log('info', 'Router connected')
 			this.instance.updateStatus(InstanceStatus.Ok)
