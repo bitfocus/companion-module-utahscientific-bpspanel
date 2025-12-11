@@ -293,12 +293,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^24.10.2":
+"@types/node@npm:*":
   version: 24.10.2
   resolution: "@types/node@npm:24.10.2"
   dependencies:
     undici-types: "npm:~7.16.0"
   checksum: 10c0/560c894e1a9bf7468718ceca8cd520361fd0d3fcc0b020c2f028fc722b28b5b56aecd16736a9b753d52a14837c066cf23480a8582ead59adc63a7e4333bc976c
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^24.10.3":
+  version: 24.10.3
+  resolution: "@types/node@npm:24.10.3"
+  dependencies:
+    undici-types: "npm:~7.16.0"
+  checksum: 10c0/58ddaf9ce3dd9d3aa55f7dfacb7b8f16481ad64a47b99f1890fa3d4498d1958def78699838f422c0a81851d6be8b9de7ffc344435a60abcf02c0e2c085008b20
   languageName: node
   linkType: hard
 
@@ -2654,7 +2663,7 @@ __metadata:
   dependencies:
     "@companion-module/base": "npm:~1.14.0"
     "@companion-module/tools": "npm:^2.4.2"
-    "@types/node": "npm:^24.10.2"
+    "@types/node": "npm:^24.10.3"
     eslint: "npm:^9.39.1"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.2.7"
@@ -2662,16 +2671,16 @@ __metadata:
     rimraf: "npm:^6.1.2"
     typescript: "npm:^5.9.3"
     typescript-eslint: "npm:^8.49.0"
-    utahscientific-rscp: "git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=66c61810cdac43460fbb7cb49243d24aeedce0fd"
+    utahscientific-rscp: "git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=893a2446f9ed0a2d25cf84461bc2b59a66154a31"
   languageName: unknown
   linkType: soft
 
-"utahscientific-rscp@git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=66c61810cdac43460fbb7cb49243d24aeedce0fd":
+"utahscientific-rscp@git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=893a2446f9ed0a2d25cf84461bc2b59a66154a31":
   version: 0.1.0
-  resolution: "utahscientific-rscp@git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=66c61810cdac43460fbb7cb49243d24aeedce0fd"
+  resolution: "utahscientific-rscp@git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=893a2446f9ed0a2d25cf84461bc2b59a66154a31"
   peerDependencies:
     typescript: ^5
-  checksum: 10c0/16cdab1a2001058ade91ad5e7b83e5575ae0c3c3d03662dcb1b3daff485367260e1b5c351c717365c34b6bf5cd3aec7a072d721b7f482dc9d6b2424f63e02463
+  checksum: 10c0/baeb7bd26e5c8155233dd65663d37a6e8c08f07bd74de3b687c5b5b464a231fea3165337e159e498551bea989dd82c0b92549d784884ec536d380cfeb25b5f39
   languageName: node
   linkType: hard
 

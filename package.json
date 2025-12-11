@@ -1,6 +1,6 @@
 {
 	"name": "utahscientific-bpspanel",
-	"version": "3.0.0-beta2",
+	"version": "3.0.0-beta3",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
@@ -20,11 +20,11 @@
 	},
 	"dependencies": {
 		"@companion-module/base": "~1.14.0",
-		"utahscientific-rscp": "git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=66c61810cdac43460fbb7cb49243d24aeedce0fd"
+		"utahscientific-rscp": "git+ssh://git@github.com/bitfocusas/utahscientific-rscp#commit=893a2446f9ed0a2d25cf84461bc2b59a66154a31"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.4.2",
-		"@types/node": "^24.10.2",
+		"@types/node": "^24.10.3",
 		"eslint": "^9.39.1",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.2.7",
