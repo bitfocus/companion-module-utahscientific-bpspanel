@@ -87,7 +87,7 @@ export class UtahScientificAPI {
 		this.router.removeAllListeners()
 
 		this.router.on('status', (output, input, _level) => {
-			this.state.routes[output] = input
+			this.state.routes[output - 1] = input
 
 			const sourceName = this.state.sourceNames.find((source) => source.id === input)?.label ?? 'Unknown'
 			this.instance.setVariableValues({
