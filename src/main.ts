@@ -47,10 +47,12 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 		const configChanged = this.config.host !== config.host || this.config.port !== config.port
 		this.config = config
 
-		if (configChanged && this.router) {
+		if (configChanged) {
+			if (this.router) {
+				await this.router.disconnect()
+			}
 			this.updateStatus(InstanceStatus.Connecting)
 			try {
-				await this.router.disconnect()
 				this.router = new UtahScientificAPI(this.config, this)
 				await this.router.connect()
 				this.updateModuleComponents()
