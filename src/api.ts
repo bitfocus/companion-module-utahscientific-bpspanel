@@ -1,4 +1,4 @@
-import { UtahScientificRouter, LockType } from 'utahscientific-rscp'
+import { RCP3Router, LockType } from './rcp3/index.js'
 import { ModuleConfig } from './config.js'
 import { UtahScientificInstance } from './main.js'
 import { InstanceStatus } from '@companion-module/base'
@@ -17,7 +17,7 @@ export interface RouterState {
 }
 
 export class UtahScientificAPI {
-	private router: UtahScientificRouter
+	private router: RCP3Router
 	private config: ModuleConfig
 	private instance: UtahScientificInstance
 	private keepAliveInterval?: NodeJS.Timeout
@@ -28,7 +28,7 @@ export class UtahScientificAPI {
 	public state: RouterState
 
 	constructor(config: ModuleConfig, instance: UtahScientificInstance) {
-		this.router = new UtahScientificRouter()
+		this.router = new RCP3Router()
 		this.config = config
 		this.instance = instance
 		this.state = {
@@ -53,10 +53,6 @@ export class UtahScientificAPI {
 			await this.router.connect({
 				host: this.config.host,
 				port: this.config.port,
-				protocol: 'RCP-3',
-				options: {
-					//debug: true,
-				},
 			})
 			this.connected = true
 			this.instance.updateStatus(InstanceStatus.Ok)
@@ -261,26 +257,9 @@ export class UtahScientificAPI {
 		}
 
 		try {
-			const success = await this.router.take(input, output, level)
-			if (!success) {
-				this.instance.log('warn', `Router reported failed take for input ${input} to output ${output}`)
-				return
-			}
-
-			// Verify the route actually happened
-			const currentInput = await this.router.getStatus(output)
-			if (currentInput !== input) {
-				this.instance.log(
-					'warn',
-					`Route verification failed: Expected input ${input} for output ${output}, but got ${currentInput}`,
-				)
-				return
-			}
-
+			await this.router.take(input, output, level)
 			this.state.selectedSource = -1
-			this.instance.setVariableValues({
-				source: -1,
-			})
+			this.instance.setVariableValues({ source: -1 })
 			this.instance.checkFeedbacks('selected_source', 'selected_dest', 'source_dest_route')
 		} catch (error) {
 			this.instance.log('warn', `Failed to take route: ${error}`)

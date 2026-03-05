@@ -10,6 +10,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 			name: `Source ${sourceName}`,
 			type: 'button',
 			style: {
+				show_topbar: false,
 				text: '$(bpspanel:source_' + sourceId + '_name)',
 				size: '14',
 				color: combineRgb(255, 255, 255),
@@ -57,6 +58,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 			name: `Source ${sourceName} (Take)`,
 			type: 'button',
 			style: {
+				show_topbar: false,
 				text: '$(bpspanel:source_' + sourceId + '_name)',
 				size: '14',
 				color: combineRgb(255, 255, 255),
@@ -105,6 +107,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 		name: `Take Button`,
 		type: 'button',
 		style: {
+			show_topbar: false,
 			text: 'TAKE',
 			size: '14',
 			color: combineRgb(255, 255, 255),
@@ -132,6 +135,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 			name: `Destination ${destinationName}`,
 			type: 'button',
 			style: {
+				show_topbar: false,
 				text: destinatonVariable,
 				size: '14',
 				color: combineRgb(255, 255, 255),
@@ -179,6 +183,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 			name: `Lock Destination ${destinationName}`,
 			type: 'button',
 			style: {
+				show_topbar: false,
 				text: 'LOCK ' + destinatonVariable,
 				size: '14',
 				color: combineRgb(255, 255, 255),
