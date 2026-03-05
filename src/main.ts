@@ -8,7 +8,7 @@ import { UpdatePresets } from './presets.js'
 import { UtahScientificAPI } from './api.js'
 
 export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
-	config!: ModuleConfig // Setup in init()
+	config!: ModuleConfig
 	router!: UtahScientificAPI
 
 	constructor(internal: unknown) {
@@ -53,24 +53,23 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async configUpdated(config: ModuleConfig): Promise<void> {
-		const configChanged =
-			this.config.host !== config.host || this.config.port !== config.port || this.config.levels !== config.levels
+		const connectionChanged = this.config.host !== config.host || this.config.port !== config.port
+		const levelsChanged = this.config.levels !== config.levels
 		this.config = config
 
-		if (configChanged) {
+		if (connectionChanged) {
 			if (this.router) {
 				await this.router.disconnect()
 			}
 			this.updateStatus(InstanceStatus.Connecting)
-			try {
-				this.router = new UtahScientificAPI(this.config, this)
-				await this.router.connect()
-				this.updateModuleComponents()
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : String(error)
-				this.log('error', `Failed to reconnect with new config: ${errorMessage}`)
-				this.updateStatus(InstanceStatus.Disconnected)
-			}
+			this.router = new UtahScientificAPI(this.config, this)
+			this.connectRouter().catch((e) => {
+				this.log('error', `Error reconnecting with new config: ${e}`)
+				this.updateStatus(InstanceStatus.ConnectionFailure)
+			})
+		} else if (levelsChanged) {
+			this.router = new UtahScientificAPI(this.config, this)
+			this.updateModuleComponents()
 		}
 	}
 

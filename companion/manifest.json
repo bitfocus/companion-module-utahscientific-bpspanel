@@ -11,6 +11,10 @@
 		{
 			"name": "UTSCI",
 			"email": "veaton@utsci.com"
+		},
+		{
+			"name": "Bryce Seifert",
+			"email": "bryce@bitfocus.io"
 		}
 	],
 	"legacyIds": ["bps"],

@@ -129,7 +129,6 @@ export class UtahScientificAPI {
 					const levelNum = lvl + 1
 					this.instance.setVariableValues({
 						[`destination_${output}_level_${levelNum}_source_id`]: input,
-						//[`destination_${output}_level_${levelNum}_source_name`]: sourceName,
 					})
 				}
 			}
@@ -203,6 +202,10 @@ export class UtahScientificAPI {
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				this.instance.updateStatus(InstanceStatus.ConnectionFailure)
 				this.instance.log('debug', `Keep-alive ping failed: ${errorMessage}`)
+				if (this.keepAliveInterval) {
+					clearInterval(this.keepAliveInterval)
+					this.keepAliveInterval = undefined
+				}
 				this.scheduleReconnect()
 			}
 		}, 5000)
@@ -365,7 +368,7 @@ export class UtahScientificAPI {
 		try {
 			await this.router.take(input, output, levelMask)
 			this.state.selectedSource = -1
-			this.instance.setVariableValues({ source: -1 })
+			this.instance.setVariableValues({ source: 'None' })
 			this.instance.checkFeedbacks('selected_source', 'selected_dest', 'source_dest_route')
 		} catch (error) {
 			this.instance.log('warn', `Failed to take route: ${error}`)

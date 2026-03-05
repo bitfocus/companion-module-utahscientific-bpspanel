@@ -171,14 +171,14 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 	for (const i of self.router.state.destinationNames) {
 		const destinationName = i.label
 		const destinationId = i.id
-		const destinatonVariable = '$(bpspanel:destination_' + destinationId + '_name)'
+		const destinationVariable = '$(bpspanel:destination_' + destinationId + '_name)'
 		presets[`destination_${destinationId}`] = {
 			category: 'Destinations',
 			name: `Destination ${destinationName}`,
 			type: 'button',
 			style: {
 				show_topbar: false,
-				text: destinatonVariable,
+				text: destinationVariable,
 				size: '14',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -215,7 +215,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 					style: {
 						color: combineRgb(0, 0, 0),
 						bgcolor: combineRgb(153, 0, 0),
-						text: `${destinatonVariable} LOCKED`,
+						text: `${destinationVariable} LOCKED`,
 					},
 				},
 			],
@@ -226,7 +226,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 			type: 'button',
 			style: {
 				show_topbar: false,
-				text: 'LOCK ' + destinatonVariable,
+				text: 'LOCK ' + destinationVariable,
 				size: '14',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -254,7 +254,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 					style: {
 						color: combineRgb(0, 0, 0),
 						bgcolor: combineRgb(153, 0, 0),
-						text: `UNLOCK ${destinatonVariable}`,
+						text: `UNLOCK ${destinationVariable}`,
 					},
 				},
 			],

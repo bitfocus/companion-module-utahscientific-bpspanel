@@ -38,16 +38,10 @@ export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 
 		// Per-level variables
 		for (let lvl = 1; lvl <= numLevels; lvl++) {
-			variables.push(
-				{
-					variableId: `destination_${id}_level_${lvl}_source_id`,
-					name: `Destination ${id} - Level ${lvl} - Source ID`,
-				},
-				/* {
-					variableId: `destination_${id}_level_${lvl}_source_name`,
-					name: `Destination ${id} Level ${lvl} - Source Name`,
-				}, */
-			)
+			variables.push({
+				variableId: `destination_${id}_level_${lvl}_source_id`,
+				name: `Destination ${id} - Level ${lvl} - Source ID`,
+			})
 		}
 	}
 
@@ -65,47 +59,43 @@ export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 export function UpdateVariables(self: UtahScientificInstance): void {
 	const routes = self.router.state.routes
 	const numLevels = self.router.state.numLevels
-
-	for (const dest of self.router.state.destinationNames) {
-		const id = dest.id
-		const destLevels = routes.get(id)
-
-		// Level 1 legacy variables
-		const level1Source = destLevels?.[0] ?? 0
-		const level1SourceName = self.router.state.sourceNames.find((s) => s.id === level1Source)?.label ?? 'Unknown'
-		self.setVariableValues({
-			[`destination_${id}_source_id`]: level1Source,
-			[`destination_${id}_source_name`]: level1SourceName,
-		})
-
-		// Per-level variables
-		for (let lvl = 1; lvl <= numLevels; lvl++) {
-			const sourceId = destLevels?.[lvl - 1] ?? 0
-			//const sourceName = self.router.state.sourceNames.find((s) => s.id === sourceId)?.label ?? 'Unknown'
-			self.setVariableValues({
-				[`destination_${id}_level_${lvl}_source_id`]: sourceId,
-				//[`destination_${id}_level_${lvl}_source_name`]: sourceName,
-			})
-		}
-	}
-
 	const sourceNames = self.router.state.sourceNames
-	for (const source of sourceNames) {
-		self.setVariableValues({ [`source_${source.id}_name`]: source.label })
-	}
 	const destinationNames = self.router.state.destinationNames
-	for (const destination of destinationNames) {
-		self.setVariableValues({ [`destination_${destination.id}_name`]: destination.label })
-		const lockState = self.router.state.locks[destination.id - 1]
-		self.setVariableValues({ [`destination_${destination.id}_lock_state`]: lockState ? 'Locked' : 'Unlocked' })
-	}
-
 	const selectedSource = self.router.state.selectedSource
 	const selectedDestination = self.router.state.selectedDestination
-	self.setVariableValues({
+
+	const values: Record<string, string | number> = {
 		sources: sourceNames.length,
 		destinations: destinationNames.length,
 		destination: selectedDestination === -1 ? 'None' : selectedDestination,
 		source: selectedSource === -1 ? 'None' : selectedSource,
-	})
+	}
+
+	for (const source of sourceNames) {
+		values[`source_${source.id}_name`] = source.label
+	}
+
+	for (const dest of destinationNames) {
+		const id = dest.id
+		const destLevels = routes.get(id)
+
+		values[`destination_${id}_name`] = dest.label
+
+		const lockState = self.router.state.locks[id - 1]
+		values[`destination_${id}_lock_state`] = lockState ? 'Locked' : 'Unlocked'
+
+		// Level 1 legacy variables
+		const level1Source = destLevels?.[0] ?? 0
+		const level1SourceName = sourceNames.find((s) => s.id === level1Source)?.label ?? 'Unknown'
+		values[`destination_${id}_source_id`] = level1Source
+		values[`destination_${id}_source_name`] = level1SourceName
+
+		// Per-level variables
+		for (let lvl = 1; lvl <= numLevels; lvl++) {
+			const sourceId = destLevels?.[lvl - 1] ?? 0
+			values[`destination_${id}_level_${lvl}_source_id`] = sourceId
+		}
+	}
+
+	self.setVariableValues(values)
 }

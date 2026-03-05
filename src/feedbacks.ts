@@ -24,6 +24,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 		],
 		callback: (feedback) => {
 			const feedbackLevels = feedback.options.level as number[]
+			if (feedbackLevels.length === 0) return false
 			for (const levelId of feedbackLevels) {
 				const level = self.router.state.selectedLevels.find((l) => l.id === levelId)
 				if (!level || !level.enabled) return false

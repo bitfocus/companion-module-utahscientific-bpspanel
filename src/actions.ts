@@ -127,7 +127,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Source  ',
+					label: 'Source',
 					id: 'source',
 					default: self.router.state.sourceNames[0]?.id,
 					choices: self.router.state.sourceNames,
