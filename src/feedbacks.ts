@@ -3,6 +3,34 @@ import type { UtahScientificInstance } from './main.js'
 
 export function UpdateFeedbacks(self: UtahScientificInstance): void {
 	const feedbacks: CompanionFeedbackDefinitions = {}
+	const levelChoices = self.router.state.levels
+
+	feedbacks['selected_level'] = {
+		type: 'boolean',
+		name: 'Selected Level',
+		description: 'Change style when the specified levels are selected',
+		defaultStyle: {
+			color: combineRgb(0, 0, 0),
+			bgcolor: combineRgb(153, 102, 255),
+		},
+		options: [
+			{
+				type: 'multidropdown',
+				label: 'Levels',
+				id: 'level',
+				default: [],
+				choices: levelChoices,
+			},
+		],
+		callback: (feedback) => {
+			const feedbackLevels = feedback.options.level as number[]
+			for (const levelId of feedbackLevels) {
+				const level = self.router.state.selectedLevels.find((l) => l.id === levelId)
+				if (!level || !level.enabled) return false
+			}
+			return true
+		},
+	}
 
 	feedbacks['selected_dest'] = {
 		type: 'boolean',
@@ -57,7 +85,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 	feedbacks['source_dest_route'] = {
 		type: 'boolean',
 		name: 'Source Routed to Destination',
-		description: 'Change style of button when source is routed to selected destination on any level',
+		description: 'Change style of button when source is routed to selected destination on any selected level',
 		defaultStyle: {
 			color: combineRgb(0, 0, 0),
 			bgcolor: combineRgb(255, 191, 128),
@@ -72,16 +100,15 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 			},
 		],
 		callback: (feedback) => {
-			const statuses = self.router.state.routes
 			const selectedDestination = self.router.state.selectedDestination
-			if (selectedDestination < 1 || selectedDestination > statuses.length) {
-				return false
-			}
+			if (selectedDestination < 1) return false
+
 			const sourceId =
 				typeof feedback.options.source === 'string'
 					? parseInt(feedback.options.source, 10)
 					: Number(feedback.options.source)
-			return statuses[selectedDestination - 1] === sourceId
+
+			return self.router.hasSourceRoutedToDestOnAnySelectedLevel(selectedDestination, sourceId)
 		},
 	}
 

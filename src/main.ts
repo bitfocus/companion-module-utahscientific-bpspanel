@@ -53,7 +53,8 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async configUpdated(config: ModuleConfig): Promise<void> {
-		const configChanged = this.config.host !== config.host || this.config.port !== config.port
+		const configChanged =
+			this.config.host !== config.host || this.config.port !== config.port || this.config.levels !== config.levels
 		this.config = config
 
 		if (configChanged) {

@@ -1,7 +1,9 @@
 import type { UtahScientificInstance } from './main.js'
 import type { CompanionVariableDefinition } from '@companion-module/base'
+
 export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 	const variables: CompanionVariableDefinition[] = []
+	const numLevels = self.router.state.numLevels
 
 	variables.push(
 		{
@@ -22,29 +24,71 @@ export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 		},
 	)
 
-	const statuses = self.router.state.routes
-	for (let i = 0; i < statuses.length; i++) {
-		const id = i + 1
+	const destinations = self.router.state.destinationNames
+
+	for (const dest of destinations) {
+		const id = dest.id
 		variables.push(
 			{ variableId: `source_${id}_name`, name: `Source ${id} - Label` },
 			{ variableId: `destination_${id}_name`, name: `Destination ${id} - Label` },
-			{ variableId: `destination_${id}_source_name`, name: `Destination ${id} - Current Source Name` },
-			{ variableId: `destination_${id}_source_id`, name: `Destination ${id} - Current Source ID` },
+			{ variableId: `destination_${id}_source_name`, name: `Destination ${id} - Current Source Name (Level 1)` },
+			{ variableId: `destination_${id}_source_id`, name: `Destination ${id} - Current Source ID (Level 1)` },
 			{ variableId: `destination_${id}_lock_state`, name: `Destination ${id} - Lock State` },
 		)
+
+		// Per-level variables
+		for (let lvl = 1; lvl <= numLevels; lvl++) {
+			variables.push(
+				{
+					variableId: `destination_${id}_level_${lvl}_source_id`,
+					name: `Destination ${id} - Level ${lvl} - Source ID`,
+				},
+				/* {
+					variableId: `destination_${id}_level_${lvl}_source_name`,
+					name: `Destination ${id} Level ${lvl} - Source Name`,
+				}, */
+			)
+		}
+	}
+
+	// Source name variables (for sources not covered by destinations loop)
+	for (const source of self.router.state.sourceNames) {
+		const exists = destinations.some((d) => d.id === source.id)
+		if (!exists) {
+			variables.push({ variableId: `source_${source.id}_name`, name: `Source ${source.id} - Label` })
+		}
 	}
 
 	self.setVariableDefinitions(variables)
 }
 
 export function UpdateVariables(self: UtahScientificInstance): void {
-	const statuses = self.router.state.routes
-	for (let i = 0; i < statuses.length; i++) {
-		const id = i + 1
-		const sourceId = statuses[i]
-		const sourceName = self.router.state.sourceNames.find((source) => source.id === sourceId)?.label
-		self.setVariableValues({ [`destination_${id}_source_id`]: sourceId, [`destination_${id}_source_name`]: sourceName })
+	const routes = self.router.state.routes
+	const numLevels = self.router.state.numLevels
+
+	for (const dest of self.router.state.destinationNames) {
+		const id = dest.id
+		const destLevels = routes.get(id)
+
+		// Level 1 legacy variables
+		const level1Source = destLevels?.[0] ?? 0
+		const level1SourceName = self.router.state.sourceNames.find((s) => s.id === level1Source)?.label ?? 'Unknown'
+		self.setVariableValues({
+			[`destination_${id}_source_id`]: level1Source,
+			[`destination_${id}_source_name`]: level1SourceName,
+		})
+
+		// Per-level variables
+		for (let lvl = 1; lvl <= numLevels; lvl++) {
+			const sourceId = destLevels?.[lvl - 1] ?? 0
+			//const sourceName = self.router.state.sourceNames.find((s) => s.id === sourceId)?.label ?? 'Unknown'
+			self.setVariableValues({
+				[`destination_${id}_level_${lvl}_source_id`]: sourceId,
+				//[`destination_${id}_level_${lvl}_source_name`]: sourceName,
+			})
+		}
 	}
+
 	const sourceNames = self.router.state.sourceNames
 	for (const source of sourceNames) {
 		self.setVariableValues({ [`source_${source.id}_name`]: source.label })

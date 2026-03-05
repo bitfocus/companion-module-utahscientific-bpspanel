@@ -3,6 +3,7 @@ import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
 export interface ModuleConfig {
 	host: string
 	port: number
+	levels: number
 }
 
 export function GetConfigFields(): SomeCompanionConfigField[] {
@@ -28,6 +29,16 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			width: 6,
 			default: '5001',
 			regex: Regex.PORT,
+		},
+		{
+			type: 'number',
+			id: 'levels',
+			label: 'Number of Levels',
+			width: 6,
+			default: 1,
+			min: 1,
+			max: 32,
+			step: 1,
 		},
 	]
 }

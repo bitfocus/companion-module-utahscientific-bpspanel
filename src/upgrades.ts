@@ -14,6 +14,11 @@ export const UpgradeScripts: CompanionStaticUpgradeScript<ModuleConfig>[] = [
 			updatedFeedbacks: [],
 		}
 
+		if (props.config && (props.config as ModuleConfig).levels === undefined) {
+			;(props.config as ModuleConfig).levels = 1
+			changes.updatedConfig = props.config
+		}
+
 		for (const action of props.actions) {
 			if (action.actionId === 'select_source_name') {
 				if (action.options.take === undefined) {

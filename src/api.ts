@@ -3,13 +3,26 @@ import { ModuleConfig } from './config.js'
 import { UtahScientificInstance } from './main.js'
 import { InstanceStatus } from '@companion-module/base'
 
+export interface LevelChoice {
+	id: number
+	label: string
+}
+
+export interface SelectedLevel {
+	id: number
+	enabled: boolean
+}
+
 export interface RouterState {
 	selectedSource: number
 	selectedDestination: number
 	sourceNames: Array<{ id: number; label: string }>
 	destinationNames: Array<{ id: number; label: string }>
-	routes: Array<number>
+	routes: Map<number, number[]> // destination (1-based) → sources per level (0-indexed = level 1)
 	locks: Array<boolean | undefined>
+	levels: LevelChoice[]
+	selectedLevels: SelectedLevel[]
+	numLevels: number
 	routerInfo: {
 		maxSources: number
 		maxDestinations: number
@@ -31,17 +44,34 @@ export class UtahScientificAPI {
 		this.router = new RCP3Router()
 		this.config = config
 		this.instance = instance
+
+		const numLevels = config.levels || 1
+
 		this.state = {
 			selectedSource: -1,
 			selectedDestination: -1,
 			sourceNames: [],
 			destinationNames: [],
-			routes: [],
+			routes: new Map(),
 			locks: [],
+			levels: [],
+			selectedLevels: [],
+			numLevels,
 			routerInfo: {
 				maxDestinations: 0,
 				maxSources: 0,
 			},
+		}
+
+		this.initLevels(numLevels)
+	}
+
+	private initLevels(numLevels: number): void {
+		this.state.levels = []
+		this.state.selectedLevels = []
+		for (let i = 1; i <= numLevels; i++) {
+			this.state.levels.push({ id: i, label: `Level ${i}` })
+			this.state.selectedLevels.push({ id: i, enabled: true })
 		}
 	}
 
@@ -82,14 +112,36 @@ export class UtahScientificAPI {
 		// Ensure only one set of listeners exists per router instance
 		this.router.removeAllListeners()
 
-		this.router.on('status', (output, input, _level) => {
-			this.state.routes[output - 1] = input
+		this.router.on('status', (output, input, levelMask) => {
+			// Update routes for each level indicated by the bitmask
+			const destLevels = this.state.routes.get(output) ?? new Array(32).fill(0)
+			for (let lvl = 0; lvl < this.state.numLevels; lvl++) {
+				if (levelMask & (1 << lvl)) {
+					destLevels[lvl] = input
+				}
+			}
+			this.state.routes.set(output, destLevels)
 
+			// Update variables for each affected level
 			const sourceName = this.state.sourceNames.find((source) => source.id === input)?.label ?? 'Unknown'
-			this.instance.setVariableValues({
-				[`destination_${output}_source_id`]: input,
-				[`destination_${output}_source_name`]: sourceName,
-			})
+			for (let lvl = 0; lvl < this.state.numLevels; lvl++) {
+				if (levelMask & (1 << lvl)) {
+					const levelNum = lvl + 1
+					this.instance.setVariableValues({
+						[`destination_${output}_level_${levelNum}_source_id`]: input,
+						//[`destination_${output}_level_${levelNum}_source_name`]: sourceName,
+					})
+				}
+			}
+
+			// Also update the legacy single-level variable (level 1)
+			if (levelMask & 1) {
+				this.instance.setVariableValues({
+					[`destination_${output}_source_id`]: input,
+					[`destination_${output}_source_name`]: sourceName,
+				})
+			}
+
 			this.instance.checkFeedbacks('source_dest_route')
 		})
 		this.router.on('lock', (output, locked) => {
@@ -171,14 +223,13 @@ export class UtahScientificAPI {
 	}
 
 	//Statuses
-	async getCurrentRoutes(): Promise<Array<number>> {
+	async getCurrentRoutes(): Promise<void> {
 		try {
 			const statuses = await this.router.getStatuses(1, this.state.routerInfo.maxDestinations)
 			this.state.routes = statuses
 		} catch (e) {
 			this.instance.log('warn', `Failed to get current routes: ${e}`)
 		}
-		return this.state.routes
 	}
 
 	async getLockStatuses(): Promise<Array<boolean | undefined>> {
@@ -222,6 +273,61 @@ export class UtahScientificAPI {
 		return this.state.destinationNames
 	}
 
+	// --- Level Selection ---
+
+	buildLevelMask(): number {
+		let mask = 0
+		for (const level of this.state.selectedLevels) {
+			if (level.enabled) {
+				mask |= 1 << (level.id - 1)
+			}
+		}
+		return mask
+	}
+
+	selectLevels(levelIds: number[]): void {
+		for (const id of levelIds) {
+			const level = this.state.selectedLevels.find((l) => l.id === id)
+			if (level) level.enabled = true
+		}
+		this.instance.checkFeedbacks('selected_level')
+	}
+
+	deselectLevels(levelIds: number[]): void {
+		for (const id of levelIds) {
+			const level = this.state.selectedLevels.find((l) => l.id === id)
+			if (level) level.enabled = false
+		}
+		this.instance.checkFeedbacks('selected_level')
+	}
+
+	toggleLevels(levelIds: number[]): void {
+		for (const id of levelIds) {
+			const level = this.state.selectedLevels.find((l) => l.id === id)
+			if (level) level.enabled = !level.enabled
+		}
+		this.instance.checkFeedbacks('selected_level')
+	}
+
+	// --- Route Helpers ---
+
+	getSourceForDestLevel(dest: number, level: number): number {
+		const levels = this.state.routes.get(dest)
+		if (!levels) return 0
+		return levels[level - 1] ?? 0
+	}
+
+	hasSourceRoutedToDestOnAnySelectedLevel(dest: number, sourceId: number): boolean {
+		const levels = this.state.routes.get(dest)
+		if (!levels) return false
+		for (const sl of this.state.selectedLevels) {
+			if (sl.enabled && levels[sl.id - 1] === sourceId) {
+				return true
+			}
+		}
+		return false
+	}
+
 	//Commands
 	selectSource(source: number): void {
 		this.state.selectedSource = source
@@ -250,14 +356,14 @@ export class UtahScientificAPI {
 		}
 	}
 
-	async take(input: number, output: number, level: number): Promise<void> {
+	async take(input: number, output: number, levelMask: number): Promise<void> {
 		if (this.state.locks[output - 1]) {
 			this.instance.log('warn', `Cannot route to destination ${output} because it is locked`)
 			return
 		}
 
 		try {
-			await this.router.take(input, output, level)
+			await this.router.take(input, output, levelMask)
 			this.state.selectedSource = -1
 			this.instance.setVariableValues({ source: -1 })
 			this.instance.checkFeedbacks('selected_source', 'selected_dest', 'source_dest_route')

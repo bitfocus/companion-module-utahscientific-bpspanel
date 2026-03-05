@@ -44,7 +44,14 @@ interface Deferred<T> {
 export class RCP3Router extends EventEmitter {
 	private connection: RCP3Connection
 	private pendingRouterInfo: Deferred<RouterInfo> | null = null
-	private pendingMatrixRequest: (Deferred<number[]> & { expectedCount: number; results: number[] }) | null = null
+	private pendingMatrixRequest:
+		| (Deferred<Map<number, number[]>> & {
+				expectedCount: number
+				startOutput: number
+				results: Map<number, number[]>
+				receivedCount: number
+		  })
+		| null = null
 	private pendingLockRequest: Deferred<LockStatus[]> | null = null
 	private pendingSourceNames: Deferred<Map<number, string>> | null = null
 	private pendingDestNames: Deferred<Map<number, string>> | null = null
@@ -94,12 +101,11 @@ export class RCP3Router extends EventEmitter {
 
 	// --- Commands ---
 
-	async take(input: number, output: number, level: number): Promise<boolean> {
+	async take(input: number, output: number, levelMask: number): Promise<boolean> {
 		const payload = Buffer.alloc(8)
 		payload.writeUInt16BE(input, 0)
 		payload.writeUInt16BE(output, 2)
-		// Level mask: if level is provided as a number, use it as all-levels mask
-		payload.writeUInt32BE(level === 1 ? 0xffffffff : level, 4)
+		payload.writeUInt32BE(levelMask >>> 0, 4)
 
 		try {
 			this.connection.sendPacket(INTF_SC, CMD_TAKE, payload)
@@ -127,27 +133,30 @@ export class RCP3Router extends EventEmitter {
 		})
 	}
 
-	async getStatus(output: number): Promise<number> {
-		const statuses = await this.getStatuses(output, 1)
-		return statuses[0]
-	}
-
-	async getStatuses(startOutput: number, count: number): Promise<number[]> {
+	async getStatuses(startOutput: number, count: number): Promise<Map<number, number[]>> {
 		if (this.pendingMatrixRequest) {
 			this.pendingMatrixRequest.reject(new Error('Superseded'))
 			clearTimeout(this.pendingMatrixRequest.timer)
 			this.pendingMatrixRequest = null
 		}
 
-		return new Promise<number[]>((resolve, reject) => {
+		return new Promise<Map<number, number[]>>((resolve, reject) => {
 			const timer = setTimeout(() => {
 				// Resolve with whatever we've accumulated on timeout
-				const partial = this.pendingMatrixRequest?.results ?? []
+				const partial = this.pendingMatrixRequest?.results ?? new Map()
 				this.pendingMatrixRequest = null
 				resolve(partial)
 			}, 2000)
 
-			this.pendingMatrixRequest = { resolve, reject, timer, expectedCount: count, results: [] }
+			this.pendingMatrixRequest = {
+				resolve,
+				reject,
+				timer,
+				expectedCount: count,
+				startOutput,
+				results: new Map(),
+				receivedCount: 0,
+			}
 
 			const payload = Buffer.alloc(4)
 			payload.writeUInt16BE(startOutput, 0)
@@ -310,22 +319,34 @@ export class RCP3Router extends EventEmitter {
 	private handleGetMatrixResp(payload: Buffer): void {
 		if (payload.length < 4 || !this.pendingMatrixRequest) return
 
+		const startDest = payload.readUInt16BE(0)
 		const count = payload.readUInt16BE(2)
 
 		// Each destination has 64 bytes of data (2 bytes per level * 32 levels)
-		// We only need level 1's source for each destination
 		const dataOffset = 4 // skip startDest(2) + count(2)
 		for (let i = 0; i < count; i++) {
 			const entryOffset = dataOffset + i * GET_MATRIX_ENTRY_SIZE
-			if (entryOffset + 2 <= payload.length) {
-				const source = payload.readUInt16BE(entryOffset)
-				// 0x0FFF means "no connection" in Utah Scientific protocol
-				this.pendingMatrixRequest.results.push(source === 0x0fff ? 0 : source)
+			const destId = startDest + i
+			const levels: number[] = []
+
+			// Parse all 32 levels (2 bytes each)
+			for (let lvl = 0; lvl < 32; lvl++) {
+				const lvlOffset = entryOffset + lvl * 2
+				if (lvlOffset + 2 <= payload.length) {
+					const source = payload.readUInt16BE(lvlOffset)
+					// 0x0FFF means "no connection" in Utah Scientific protocol
+					levels.push(source === 0x0fff ? 0 : source)
+				} else {
+					levels.push(0)
+				}
 			}
+
+			this.pendingMatrixRequest.results.set(destId, levels)
+			this.pendingMatrixRequest.receivedCount++
 		}
 
 		// Router sends multiple packets for large requests — resolve when we have all expected results
-		if (this.pendingMatrixRequest.results.length >= this.pendingMatrixRequest.expectedCount) {
+		if (this.pendingMatrixRequest.receivedCount >= this.pendingMatrixRequest.expectedCount) {
 			clearTimeout(this.pendingMatrixRequest.timer)
 			this.pendingMatrixRequest.resolve(this.pendingMatrixRequest.results)
 			this.pendingMatrixRequest = null

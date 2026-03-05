@@ -2,6 +2,48 @@ import { combineRgb, CompanionPresetDefinitions } from '@companion-module/base'
 import { UtahScientificInstance } from './main.js'
 export function UpdatePresets(self: UtahScientificInstance): void {
 	const presets: CompanionPresetDefinitions = {}
+
+	// Level selection presets
+	for (const level of self.router.state.levels) {
+		presets[`level_${level.id}`] = {
+			category: 'Levels',
+			name: `Level ${level.id}`,
+			type: 'button',
+			style: {
+				show_topbar: false,
+				text: `Level ${level.id}`,
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'toggle_level',
+							options: {
+								level: [level.id],
+							},
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [
+				{
+					feedbackId: 'selected_level',
+					options: {
+						level: [level.id],
+					},
+					style: {
+						color: combineRgb(0, 0, 0),
+						bgcolor: combineRgb(153, 102, 255),
+					},
+				},
+			],
+		}
+	}
+
 	for (const i of self.router.state.sourceNames) {
 		const sourceName = i.label
 		const sourceId = i.id

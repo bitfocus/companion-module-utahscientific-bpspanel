@@ -1,7 +1,57 @@
 import type { UtahScientificInstance } from './main.js'
 
 export function UpdateActions(self: UtahScientificInstance): void {
+	const levelChoices = self.router.state.levels
+
 	self.setActionDefinitions({
+		select_level: {
+			name: 'Select Levels',
+			options: [
+				{
+					type: 'multidropdown',
+					label: 'Levels',
+					id: 'level',
+					default: levelChoices.map((l) => l.id),
+					choices: levelChoices,
+				},
+			],
+			callback: (action) => {
+				const levels = action.options.level as number[]
+				self.router.selectLevels(levels)
+			},
+		},
+		deselect_level: {
+			name: 'Deselect Levels',
+			options: [
+				{
+					type: 'multidropdown',
+					label: 'Levels',
+					id: 'level',
+					default: [],
+					choices: levelChoices,
+				},
+			],
+			callback: (action) => {
+				const levels = action.options.level as number[]
+				self.router.deselectLevels(levels)
+			},
+		},
+		toggle_level: {
+			name: 'Toggle Levels',
+			options: [
+				{
+					type: 'multidropdown',
+					label: 'Levels',
+					id: 'level',
+					default: [],
+					choices: levelChoices,
+				},
+			],
+			callback: (action) => {
+				const levels = action.options.level as number[]
+				self.router.toggleLevels(levels)
+			},
+		},
 		select_source_name: {
 			name: 'Select Source',
 			options: [
@@ -30,7 +80,8 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					self.router.selectSource(sourceId)
 					if (action.options.take) {
 						if (self.router.state.selectedDestination >= 0) {
-							await self.router.take(sourceId, self.router.state.selectedDestination, 1)
+							const levelMask = self.router.buildLevelMask()
+							await self.router.take(sourceId, self.router.state.selectedDestination, levelMask)
 						} else {
 							self.log('warn', 'Destination not selected')
 						}
@@ -64,7 +115,8 @@ export function UpdateActions(self: UtahScientificInstance): void {
 				const source = self.router.state.selectedSource
 				const destination = self.router.state.selectedDestination
 				if (source >= 0 && destination >= 0) {
-					return await self.router.take(source, destination, 1)
+					const levelMask = self.router.buildLevelMask()
+					return await self.router.take(source, destination, levelMask)
 				} else {
 					self.log('warn', 'Source or destination not selected')
 				}
@@ -87,6 +139,13 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					default: self.router.state.destinationNames[0]?.id,
 					choices: self.router.state.destinationNames,
 				},
+				{
+					type: 'multidropdown',
+					label: 'Levels',
+					id: 'level',
+					default: levelChoices.map((l) => l.id),
+					choices: levelChoices,
+				},
 			],
 			callback: async (action) => {
 				const sourceId =
@@ -97,8 +156,13 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					typeof action.options.destination === 'string'
 						? parseInt(action.options.destination, 10)
 						: Number(action.options.destination)
+				const selectedLevelIds = action.options.level as number[]
 				if (!isNaN(sourceId) && !isNaN(destId)) {
-					return await self.router.take(sourceId, destId, 1)
+					let mask = 0
+					for (const id of selectedLevelIds) {
+						mask |= 1 << (id - 1)
+					}
+					return await self.router.take(sourceId, destId, mask)
 				}
 			},
 		},
