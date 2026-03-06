@@ -39,8 +39,8 @@ export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 		// Per-level variables
 		for (let lvl = 1; lvl <= numLevels; lvl++) {
 			variables.push({
-				variableId: `destination_${id}_level_${lvl}_source_id`,
-				name: `Destination ${id} - Level ${lvl} - Source ID`,
+				variableId: `route_${id}_${lvl}`,
+				name: `Destination ${id} - Level ${lvl} - Active Source ID`,
 			})
 		}
 	}
@@ -93,7 +93,7 @@ export function UpdateVariables(self: UtahScientificInstance): void {
 		// Per-level variables
 		for (let lvl = 1; lvl <= numLevels; lvl++) {
 			const sourceId = destLevels?.[lvl - 1] ?? 0
-			values[`destination_${id}_level_${lvl}_source_id`] = sourceId
+			values[`route_${id}_${lvl}`] = sourceId
 		}
 	}
 

@@ -128,7 +128,7 @@ export class UtahScientificAPI {
 				if (levelMask & (1 << lvl)) {
 					const levelNum = lvl + 1
 					this.instance.setVariableValues({
-						[`destination_${output}_level_${levelNum}_source_id`]: input,
+						[`route_${output}_${levelNum}`]: input,
 					})
 				}
 			}
@@ -361,17 +361,20 @@ export class UtahScientificAPI {
 
 	async take(input: number, output: number, levelMask: number): Promise<void> {
 		if (this.state.locks[output - 1]) {
-			this.instance.log('warn', `Cannot route to destination ${output} because it is locked`)
-			return
+			const msg = `Cannot route to destination ${output} because it is locked`
+			this.instance.log('warn', msg)
+			throw new Error(msg)
 		}
 
 		try {
 			await this.router.take(input, output, levelMask)
+			this.instance.log('debug', `Routed source ${input} to destination ${output} (levels: ${levelMask})`)
 			this.state.selectedSource = -1
 			this.instance.setVariableValues({ source: 'None' })
 			this.instance.checkFeedbacks('selected_source', 'selected_dest', 'source_dest_route')
 		} catch (error) {
-			this.instance.log('warn', `Failed to take route: ${error}`)
+			this.instance.log('warn', `Failed to route source ${input} to destination ${output}: ${error}`)
+			throw error
 		}
 	}
 }

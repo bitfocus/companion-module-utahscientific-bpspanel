@@ -53,8 +53,8 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async configUpdated(config: ModuleConfig): Promise<void> {
-		const connectionChanged = this.config.host !== config.host || this.config.port !== config.port
-		const levelsChanged = this.config.levels !== config.levels
+		const connectionChanged =
+			this.config.host !== config.host || this.config.port !== config.port || this.config.levels !== config.levels
 		this.config = config
 
 		if (connectionChanged) {
@@ -67,9 +67,6 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 				this.log('error', `Error reconnecting with new config: ${e}`)
 				this.updateStatus(InstanceStatus.ConnectionFailure)
 			})
-		} else if (levelsChanged) {
-			this.router = new UtahScientificAPI(this.config, this)
-			this.updateModuleComponents()
 		}
 	}
 
