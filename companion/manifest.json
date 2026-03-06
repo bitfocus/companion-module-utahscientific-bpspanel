@@ -3,7 +3,7 @@
 	"name": "utahscientific-bpspanel",
 	"shortname": "bpspanel",
 	"description": "Companion module for Utah scientific Button per source",
-	"version": "3.0.0",
+	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-utahscientific-bpspanel.git",
 	"bugs": "https://github.com/bitfocus/companion-module-utahscientific-bpspanel/issues",
