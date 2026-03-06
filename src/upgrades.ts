@@ -25,6 +25,12 @@ export const UpgradeScripts: CompanionStaticUpgradeScript<ModuleConfig>[] = [
 					action.options.take = false
 					changes.updatedActions.push(action)
 				}
+			} else if (action.actionId === 'route') {
+				if (action.options.mode === undefined) {
+					action.options.mode = 'all'
+					action.options.levels = []
+					changes.updatedActions.push(action)
+				}
 			}
 		}
 

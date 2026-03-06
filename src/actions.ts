@@ -140,11 +140,22 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					choices: self.router.state.destinationNames,
 				},
 				{
+					type: 'dropdown',
+					label: 'Routing Mode',
+					id: 'mode',
+					default: 'all',
+					choices: [
+						{ id: 'all', label: 'All Levels' },
+						{ id: 'selected', label: 'Selected Levels' },
+					],
+				},
+				{
 					type: 'multidropdown',
 					label: 'Levels',
-					id: 'level',
+					id: 'levels',
 					default: levelChoices.map((l) => l.id),
 					choices: levelChoices,
+					isVisibleExpression: `$(options:mode) === 'selected'`,
 				},
 			],
 			callback: async (action) => {
@@ -156,12 +167,16 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					typeof action.options.destination === 'string'
 						? parseInt(action.options.destination, 10)
 						: Number(action.options.destination)
-				const selectedLevelIds = action.options.level as number[]
-				if (!isNaN(sourceId) && !isNaN(destId)) {
-					let mask = 0
+				let mask = 0
+				if (action.options.mode === 'all') {
+					mask = self.router.buildLevelMask()
+				} else {
+					const selectedLevelIds = action.options.levels as number[]
 					for (const id of selectedLevelIds) {
 						mask |= 1 << (id - 1)
 					}
+				}
+				if (!isNaN(sourceId) && !isNaN(destId)) {
 					return await self.router.take(sourceId, destId, mask)
 				}
 			},
