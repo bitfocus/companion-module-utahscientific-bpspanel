@@ -293,7 +293,7 @@ export class UtahScientificAPI {
 			const level = this.state.selectedLevels.find((l) => l.id === id)
 			if (level) level.enabled = true
 		}
-		this.instance.checkFeedbacks('selected_level')
+		this.instance.checkFeedbacks('selected_level', 'source_dest_route')
 	}
 
 	deselectLevels(levelIds: number[]): void {
@@ -301,7 +301,7 @@ export class UtahScientificAPI {
 			const level = this.state.selectedLevels.find((l) => l.id === id)
 			if (level) level.enabled = false
 		}
-		this.instance.checkFeedbacks('selected_level')
+		this.instance.checkFeedbacks('selected_level', 'source_dest_route')
 	}
 
 	toggleLevels(levelIds: number[]): void {
@@ -309,7 +309,7 @@ export class UtahScientificAPI {
 			const level = this.state.selectedLevels.find((l) => l.id === id)
 			if (level) level.enabled = !level.enabled
 		}
-		this.instance.checkFeedbacks('selected_level')
+		this.instance.checkFeedbacks('selected_level', 'source_dest_route')
 	}
 
 	// --- Route Helpers ---
