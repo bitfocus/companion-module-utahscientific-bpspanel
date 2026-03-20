@@ -116,6 +116,7 @@ export class RCP3Connection extends EventEmitter {
 			const calculatedChecksum = calculateChecksum(payload)
 			if (calculatedChecksum !== checksum) {
 				this.log(`Checksum mismatch: expected 0x${checksum.toString(16)}, got 0x${calculatedChecksum.toString(16)}`)
+				continue
 			}
 
 			// Auto-respond to ping requests

@@ -169,7 +169,9 @@ export function UpdateActions(self: UtahScientificInstance): void {
 						: Number(action.options.destination)
 				let mask = 0
 				if (action.options.mode === 'all') {
-					mask = self.router.buildLevelMask()
+					for (const level of self.router.state.levels) {
+						mask |= 1 << (level.id - 1)
+					}
 				} else {
 					const selectedLevelIds = action.options.levels as number[]
 					for (const id of selectedLevelIds) {

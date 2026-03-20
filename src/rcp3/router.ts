@@ -395,7 +395,7 @@ export class RCP3Router extends EventEmitter {
 		const dest = payload.readUInt16BE(4)
 		const statusType = payload[6]
 
-		const isLocked = statusType === 0x00
+		const isLocked = statusType !== 0x00
 		const lockStatus: LockStatus = {
 			isLocked,
 			type: isLocked ? LockType.Lock : LockType.Unlock,
