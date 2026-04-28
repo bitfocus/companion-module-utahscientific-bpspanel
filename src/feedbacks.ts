@@ -102,7 +102,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 		],
 		callback: (feedback) => {
 			const selectedDestination = self.router.state.selectedDestination
-			if (selectedDestination < 1) return false
+			if (selectedDestination < 0) return false
 
 			const sourceId =
 				typeof feedback.options.source === 'string'
@@ -132,7 +132,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 		callback: (feedback) => {
 			const destId =
 				typeof feedback.options.dest === 'string' ? parseInt(feedback.options.dest, 10) : Number(feedback.options.dest)
-			const lockState = self.router.state.locks[destId - 1]
+			const lockState = self.router.state.locks[destId]
 			return !!lockState
 		},
 	}

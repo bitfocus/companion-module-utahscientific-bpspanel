@@ -114,7 +114,7 @@ export class UtahScientificAPI {
 
 		this.router.on('status', (output, input, levelMask) => {
 			// Update routes for each level indicated by the bitmask
-			const destLevels = this.state.routes.get(output) ?? new Array(32).fill(0)
+			const destLevels = this.state.routes.get(output) ?? new Array(32).fill(-1)
 			for (let lvl = 0; lvl < this.state.numLevels; lvl++) {
 				if (levelMask & (1 << lvl)) {
 					destLevels[lvl] = input
@@ -123,12 +123,14 @@ export class UtahScientificAPI {
 			this.state.routes.set(output, destLevels)
 
 			// Update variables for each affected level
-			const sourceName = this.state.sourceNames.find((source) => source.id === input)?.label ?? 'Unknown'
+			const sourceName =
+				input < 0 ? 'None' : (this.state.sourceNames.find((source) => source.id === input)?.label ?? 'Unknown')
+			const sourceIdValue = input < 0 ? 'None' : input
 			for (let lvl = 0; lvl < this.state.numLevels; lvl++) {
 				if (levelMask & (1 << lvl)) {
 					const levelNum = lvl + 1
 					this.instance.setVariableValues({
-						[`route_${output}_${levelNum}`]: input,
+						[`route_${output}_${levelNum}`]: sourceIdValue,
 					})
 				}
 			}
@@ -136,7 +138,7 @@ export class UtahScientificAPI {
 			// Also update the legacy single-level variable (level 1)
 			if (levelMask & 1) {
 				this.instance.setVariableValues({
-					[`destination_${output}_source_id`]: input,
+					[`destination_${output}_source_id`]: sourceIdValue,
 					[`destination_${output}_source_name`]: sourceName,
 				})
 			}
@@ -145,7 +147,7 @@ export class UtahScientificAPI {
 		})
 		this.router.on('lock', (output, locked) => {
 			const isLocked = locked?.isLocked
-			this.state.locks[output - 1] = isLocked
+			this.state.locks[output] = isLocked
 			this.instance.setVariableValues({ [`destination_${output}_lock_state`]: isLocked ? 'Locked' : 'Unlocked' })
 			this.instance.checkFeedbacks('destination_locked')
 		})
@@ -228,7 +230,7 @@ export class UtahScientificAPI {
 	//Statuses
 	async getCurrentRoutes(): Promise<void> {
 		try {
-			const statuses = await this.router.getStatuses(1, this.state.routerInfo.maxDestinations)
+			const statuses = await this.router.getStatuses(0, this.state.routerInfo.maxDestinations)
 			this.state.routes = statuses
 		} catch (e) {
 			this.instance.log('warn', `Failed to get current routes: ${e}`)
@@ -237,7 +239,7 @@ export class UtahScientificAPI {
 
 	async getLockStatuses(): Promise<Array<boolean | undefined>> {
 		try {
-			const allLocks = await this.router.getLockStatuses(1, this.state.routerInfo.maxDestinations)
+			const allLocks = await this.router.getLockStatuses(0, this.state.routerInfo.maxDestinations)
 
 			// Reset locks array
 			this.state.locks = new Array(this.state.routerInfo.maxDestinations).fill(false)
@@ -316,8 +318,8 @@ export class UtahScientificAPI {
 
 	getSourceForDestLevel(dest: number, level: number): number {
 		const levels = this.state.routes.get(dest)
-		if (!levels) return 0
-		return levels[level - 1] ?? 0
+		if (!levels) return -1
+		return levels[level - 1] ?? -1
 	}
 
 	hasSourceRoutedToDestOnAnySelectedLevel(dest: number, sourceId: number): boolean {
@@ -349,10 +351,10 @@ export class UtahScientificAPI {
 		try {
 			await this.router.setLock(destination, status)
 			const lockState = await this.router.getLock(destination)
-			this.state.locks[destination - 1] = lockState?.isLocked || false
+			this.state.locks[destination] = lockState?.isLocked || false
 			this.instance.checkFeedbacks('destination_locked')
 			this.instance.setVariableValues({
-				[`destination_${destination}_lock_state`]: this.state.locks[destination - 1] ? 'Locked' : 'Unlocked',
+				[`destination_${destination}_lock_state`]: this.state.locks[destination] ? 'Locked' : 'Unlocked',
 			})
 		} catch (e) {
 			this.instance.log('warn', `Failed to set/fetch lock status: ${e}`)
@@ -360,7 +362,7 @@ export class UtahScientificAPI {
 	}
 
 	async take(input: number, output: number, levelMask: number): Promise<void> {
-		if (this.state.locks[output - 1]) {
+		if (this.state.locks[output]) {
 			const msg = `Cannot route to destination ${output} because it is locked`
 			this.instance.log('warn', msg)
 			throw new Error(msg)

@@ -335,9 +335,9 @@ export class RCP3Router extends EventEmitter {
 				if (lvlOffset + 2 <= payload.length) {
 					const source = payload.readUInt16BE(lvlOffset)
 					// 0x0FFF means "no connection" in Utah Scientific protocol
-					levels.push(source === 0x0fff ? 0 : source)
+					levels.push(source === 0x0fff ? -1 : source)
 				} else {
-					levels.push(0)
+					levels.push(-1)
 				}
 			}
 
@@ -385,7 +385,7 @@ export class RCP3Router extends EventEmitter {
 		const dest = payload.readUInt16BE(2)
 		const level = payload.readUInt32BE(4)
 
-		this.emit('status', dest, source, level)
+		this.emit('status', dest, source === 0x0fff ? -1 : source, level)
 	}
 
 	private handleSystemLock(payload: Buffer): void {
@@ -421,9 +421,7 @@ export class RCP3Router extends EventEmitter {
 			}
 			name = name.trim()
 
-			if (deviceIndex === 0) {
-				// Index 0 is a phantom/unrouted placeholder — skip it
-			} else if (deviceType === 0) {
+			if (deviceType === 0) {
 				this.sourceNameAccumulator.set(deviceIndex, name)
 			} else {
 				this.destNameAccumulator.set(deviceIndex, name)

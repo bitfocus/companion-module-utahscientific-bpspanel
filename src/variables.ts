@@ -81,7 +81,7 @@ export function UpdateVariables(self: UtahScientificInstance): void {
 
 		values[`destination_${id}_name`] = dest.label
 
-		const lockState = self.router.state.locks[id - 1]
+		const lockState = self.router.state.locks[id]
 		values[`destination_${id}_lock_state`] = lockState ? 'Locked' : 'Unlocked'
 
 		// Level 1 legacy variables
