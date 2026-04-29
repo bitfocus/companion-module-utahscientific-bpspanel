@@ -125,11 +125,15 @@ export class RCP3Connection extends EventEmitter {
 			// Auto-respond to ping requests
 			if (command === CMD_PING) {
 				this.log('Received ping, sending pong')
-				this.sendPacket(
-					interfaceId === INTF_PING_SOCKET ? INTF_PING_SOCKET : interfaceId,
-					CMD_PING_RESP,
-					Buffer.alloc(0),
-				)
+				try {
+					this.sendPacket(
+						interfaceId === INTF_PING_SOCKET ? INTF_PING_SOCKET : interfaceId,
+						CMD_PING_RESP,
+						Buffer.alloc(0),
+					)
+				} catch {
+					// Socket closed before we could respond — ignore
+				}
 				continue
 			}
 

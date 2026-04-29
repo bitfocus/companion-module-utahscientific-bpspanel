@@ -52,7 +52,7 @@ export class RCP3Router extends EventEmitter {
 				receivedCount: number
 		  })
 		| null = null
-	private pendingLockRequest: Deferred<LockStatus[]> | null = null
+	private pendingLockRequest: Deferred<{ startDest: number; locks: LockStatus[] }> | null = null
 	private pendingSourceNames: Deferred<Map<number, string>> | null = null
 	private pendingDestNames: Deferred<Map<number, string>> | null = null
 
@@ -182,18 +182,17 @@ export class RCP3Router extends EventEmitter {
 	}
 
 	async getLock(output: number): Promise<LockStatus | undefined> {
-		const locks = await this.getLockStatuses(output, 1)
-		return locks[0]
+		return (await this.getLockStatuses(output, 1)).locks[0]
 	}
 
-	async getLockStatuses(startOutput: number, count: number): Promise<LockStatus[]> {
+	async getLockStatuses(startOutput: number, count: number): Promise<{ startDest: number; locks: LockStatus[] }> {
 		if (this.pendingLockRequest) {
 			this.pendingLockRequest.reject(new Error('Superseded'))
 			clearTimeout(this.pendingLockRequest.timer)
 			this.pendingLockRequest = null
 		}
 
-		return new Promise<LockStatus[]>((resolve, reject) => {
+		return new Promise<{ startDest: number; locks: LockStatus[] }>((resolve, reject) => {
 			const timer = setTimeout(() => {
 				this.pendingLockRequest = null
 				reject(new Error('GetLock request timeout'))
@@ -361,8 +360,9 @@ export class RCP3Router extends EventEmitter {
 	private handleGetLockResp(payload: Buffer): void {
 		if (payload.length < 4 || !this.pendingLockRequest) return
 
+		const startDest = payload.readUInt16BE(0)
 		const count = payload.readUInt16BE(2)
-		const results: LockStatus[] = []
+		const locks: LockStatus[] = []
 
 		const dataOffset = 4 // skip startDest(2) + count(2)
 		const expectedLen = dataOffset + count * GET_LOCK_ENTRY_SIZE
@@ -374,7 +374,7 @@ export class RCP3Router extends EventEmitter {
 			const entryOffset = dataOffset + i * GET_LOCK_ENTRY_SIZE
 			const lockTypeMask = payload.readUInt32BE(entryOffset)
 			const panelId = payload.readUInt16BE(entryOffset + 8)
-			results.push({
+			locks.push({
 				isLocked: lockTypeMask !== 0,
 				type: lockTypeMask !== 0 ? LockType.Lock : LockType.Unlock,
 				panelId,
@@ -382,7 +382,7 @@ export class RCP3Router extends EventEmitter {
 		}
 
 		clearTimeout(this.pendingLockRequest.timer)
-		this.pendingLockRequest.resolve(results)
+		this.pendingLockRequest.resolve({ startDest, locks })
 		this.pendingLockRequest = null
 	}
 

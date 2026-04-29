@@ -241,17 +241,20 @@ export class UtahScientificAPI {
 
 	async getLockStatuses(): Promise<Array<boolean | undefined>> {
 		try {
-			const allLocks = await this.rcpRouter.getLockStatuses(0, this.state.routerInfo.maxDestinations)
+			const { startDest, locks: allLocks } = await this.rcpRouter.getLockStatuses(
+				0,
+				this.state.routerInfo.maxDestinations,
+			)
 
 			// Reset locks array
 			this.state.locks = new Array(this.state.routerInfo.maxDestinations).fill(false)
 
 			for (let i = 0; i < allLocks.length; i++) {
-				const lockItem = allLocks[i]
-				const isLocked = lockItem.isLocked
+				const destId = startDest + i
+				const isLocked = allLocks[i].isLocked
 
-				this.state.locks[i] = isLocked
-				this.instance.setVariableValues({ [`destination_${i}_lock_state`]: isLocked ? 'Locked' : 'Unlocked' })
+				this.state.locks[destId] = isLocked
+				this.instance.setVariableValues({ [`destination_${destId}_lock_state`]: isLocked ? 'Locked' : 'Unlocked' })
 			}
 		} catch (e) {
 			this.instance.log('warn', `Failed to fetch all locks: ${e}`)

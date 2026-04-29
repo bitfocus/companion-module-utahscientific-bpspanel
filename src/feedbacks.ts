@@ -1,5 +1,6 @@
 import { combineRgb, CompanionFeedbackDefinitions } from '@companion-module/base'
 import type { UtahScientificInstance } from './main.js'
+import { parseOptionId } from './utils.js'
 
 export function UpdateFeedbacks(self: UtahScientificInstance): void {
 	const feedbacks: CompanionFeedbackDefinitions = {}
@@ -51,8 +52,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 			},
 		],
 		callback: (feedback) => {
-			const destId =
-				typeof feedback.options.dest === 'string' ? parseInt(feedback.options.dest, 10) : Number(feedback.options.dest)
+			const destId = parseOptionId(feedback.options.dest)
 			return self.api.state.selectedDestination === destId
 		},
 	}
@@ -75,10 +75,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 			},
 		],
 		callback: (feedback) => {
-			const sourceId =
-				typeof feedback.options.source === 'string'
-					? parseInt(feedback.options.source, 10)
-					: Number(feedback.options.source)
+			const sourceId = parseOptionId(feedback.options.source)
 			return self.api.state.selectedSource === sourceId
 		},
 	}
@@ -104,10 +101,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 			const selectedDestination = self.api.state.selectedDestination
 			if (selectedDestination < 0) return false
 
-			const sourceId =
-				typeof feedback.options.source === 'string'
-					? parseInt(feedback.options.source, 10)
-					: Number(feedback.options.source)
+			const sourceId = parseOptionId(feedback.options.source)
 
 			return self.api.hasSourceRoutedToDestOnAnySelectedLevel(selectedDestination, sourceId)
 		},
@@ -130,8 +124,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 			},
 		],
 		callback: (feedback) => {
-			const destId =
-				typeof feedback.options.dest === 'string' ? parseInt(feedback.options.dest, 10) : Number(feedback.options.dest)
+			const destId = parseOptionId(feedback.options.dest)
 			const lockState = self.api.state.locks[destId]
 			return !!lockState
 		},

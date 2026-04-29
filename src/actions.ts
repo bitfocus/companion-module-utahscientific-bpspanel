@@ -1,4 +1,5 @@
 import type { UtahScientificInstance } from './main.js'
+import { parseOptionId } from './utils.js'
 
 export function UpdateActions(self: UtahScientificInstance): void {
 	const levelChoices = self.api.state.levels
@@ -72,10 +73,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 			],
 
 			callback: async (action) => {
-				const sourceId =
-					typeof action.options.source === 'string'
-						? parseInt(action.options.source, 10)
-						: Number(action.options.source)
+				const sourceId = parseOptionId(action.options.source)
 				if (!isNaN(sourceId)) {
 					self.api.selectSource(sourceId)
 					if (action.options.take) {
@@ -105,8 +103,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 				},
 			],
 			callback: async (action) => {
-				const destId =
-					typeof action.options.dest === 'string' ? parseInt(action.options.dest, 10) : Number(action.options.dest)
+				const destId = parseOptionId(action.options.dest)
 				if (!isNaN(destId)) {
 					self.api.selectDestination(destId)
 				}
@@ -167,14 +164,8 @@ export function UpdateActions(self: UtahScientificInstance): void {
 				},
 			],
 			callback: async (action) => {
-				const sourceId =
-					typeof action.options.source === 'string'
-						? parseInt(action.options.source, 10)
-						: Number(action.options.source)
-				const destId =
-					typeof action.options.destination === 'string'
-						? parseInt(action.options.destination, 10)
-						: Number(action.options.destination)
+				const sourceId = parseOptionId(action.options.source)
+				const destId = parseOptionId(action.options.destination)
 				const mode = action.options.mode === 'selected' ? 'selected' : 'all'
 				const mask = self.api.buildLevelMaskForRoute(mode, (action.options.levels as number[]) ?? [])
 				if (mask === 0) {
@@ -209,10 +200,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 				},
 			],
 			callback: async (action) => {
-				const destId =
-					typeof action.options.destination === 'string'
-						? parseInt(action.options.destination, 10)
-						: Number(action.options.destination)
+				const destId = parseOptionId(action.options.destination)
 				const lock = action.options.lock
 				if (!isNaN(destId)) {
 					if (lock === 'toggle') {
