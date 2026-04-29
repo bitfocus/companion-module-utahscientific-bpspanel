@@ -69,10 +69,17 @@ export function UpdateVariables(self: UtahScientificInstance): void {
 		destinations: destinationNames.length,
 		destination: selectedDestination === -1 ? 'None' : selectedDestination,
 		source: selectedSource === -1 ? 'None' : selectedSource,
+		// Legacy Module (v2.0.0) variables
+		Sources: sourceNames.length,
+		Destinations: destinationNames.length,
+		Destination: selectedDestination === -1 ? 'None' : selectedDestination,
+		Source: selectedSource === -1 ? 'None' : selectedSource,
 	}
 
 	for (const source of sourceNames) {
 		values[`source_${source.id}_name`] = source.label
+		// Legacy Module (v2.0.0) variables
+		values[`Source_${source.id}`] = source.label
 	}
 
 	for (const dest of destinationNames) {
@@ -90,7 +97,8 @@ export function UpdateVariables(self: UtahScientificInstance): void {
 			level1Source < 0 ? 'None' : (sourceNames.find((s) => s.id === level1Source)?.label ?? 'Unknown')
 		values[`destination_${id}_source_id`] = level1Source < 0 ? 'None' : level1Source
 		values[`destination_${id}_source_name`] = level1SourceName
-
+		// Legacy Module (v2.0.0) variables
+		values[`Destination_${id}`] = dest.label
 		// Per-level variables
 		for (let lvl = 1; lvl <= numLevels; lvl++) {
 			const sourceId = destLevels?.[lvl - 1] ?? -1

@@ -34,6 +34,13 @@ export const UpgradeScripts: CompanionStaticUpgradeScript<ModuleConfig>[] = [
 			}
 		}
 
+		for (const feedback of props.feedbacks) {
+			if (feedback.feedbackId === 'combo_bg') {
+				feedback.feedbackId = 'route_active'
+				changes.updatedFeedbacks.push(feedback)
+			}
+		}
+
 		return changes
 	},
 ]

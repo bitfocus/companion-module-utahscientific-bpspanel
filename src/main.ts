@@ -14,6 +14,7 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 
 	constructor(internal: unknown) {
 		super(internal)
+		this.instanceOptions.disableVariableValidation = true
 	}
 
 	async init(config: ModuleConfig): Promise<void> {

@@ -143,7 +143,7 @@ export class UtahScientificAPI {
 				})
 			}
 
-			this.instance.checkFeedbacks('source_dest_route')
+			this.instance.checkFeedbacks('source_dest_route', 'route_connected')
 		})
 		this.rcpRouter.on('lock', (output, locked) => {
 			const isLocked = locked?.isLocked
@@ -343,6 +343,17 @@ export class UtahScientificAPI {
 		return levels[level - 1] ?? -1
 	}
 
+	hasSourceRoutedToDestOnAnyLevel(dest: number, sourceId: number): boolean {
+		const levels = this.state.routes.get(dest)
+		if (!levels) return false
+		for (const level of levels) {
+			if (level === sourceId) {
+				return true
+			}
+		}
+		return false
+	}
+
 	hasSourceRoutedToDestOnAnySelectedLevel(dest: number, sourceId: number): boolean {
 		const levels = this.state.routes.get(dest)
 		if (!levels) return false
@@ -357,13 +368,13 @@ export class UtahScientificAPI {
 	//Commands
 	selectSource(source: number): void {
 		this.state.selectedSource = source
-		this.instance.setVariableValues({ source: source })
+		this.instance.setVariableValues({ source: source, Source: source })
 		this.instance.checkFeedbacks('selected_source')
 	}
 
 	selectDestination(destination: number): void {
 		this.state.selectedDestination = destination
-		this.instance.setVariableValues({ destination: destination })
+		this.instance.setVariableValues({ destination: destination, Destination: destination })
 		this.instance.checkFeedbacks('selected_dest', 'source_dest_route')
 	}
 
@@ -400,7 +411,7 @@ export class UtahScientificAPI {
 			if (!ok) throw new Error('Not connected or send failed')
 			this.instance.log('debug', `Routed source ${input} to destination ${output} (levels: ${levelMask})`)
 			this.state.selectedSource = -1
-			this.instance.setVariableValues({ source: 'None' })
+			this.instance.setVariableValues({ source: 'None', Source: 'None' })
 			this.instance.checkFeedbacks('selected_source', 'selected_dest', 'source_dest_route')
 		} catch (error) {
 			this.instance.log('warn', `Failed to route source ${input} to destination ${output}: ${error}`)

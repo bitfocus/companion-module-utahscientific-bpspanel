@@ -82,7 +82,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 
 	feedbacks['source_dest_route'] = {
 		type: 'boolean',
-		name: 'Source Routed to Destination',
+		name: 'Source Routed to Selected Destination',
 		description: 'Change style of button when source is routed to selected destination on any selected level',
 		defaultStyle: {
 			color: combineRgb(0, 0, 0),
@@ -127,6 +127,40 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 			const destId = parseOptionId(feedback.options.dest)
 			const lockState = self.api.state.locks[destId]
 			return !!lockState
+		},
+	}
+
+	feedbacks['route_active'] = {
+		type: 'boolean',
+		name: 'Route Active',
+		description: 'Change style of button when a route is active on any level',
+		defaultStyle: {
+			color: combineRgb(0, 0, 0),
+			bgcolor: combineRgb(255, 191, 128),
+		},
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Source',
+				id: 'source',
+				default: self.api.state.sourceNames[0]?.id,
+				choices: self.api.state.sourceNames,
+			},
+			{
+				type: 'dropdown',
+				label: 'Destination',
+				id: 'dest',
+				default: self.api.state.destinationNames[0]?.id,
+				choices: self.api.state.destinationNames,
+			},
+		],
+		callback: (feedback) => {
+			const destinationId = parseOptionId(feedback.options.dest)
+			if (destinationId < 0) return false
+
+			const sourceId = parseOptionId(feedback.options.source)
+
+			return self.api.hasSourceRoutedToDestOnAnyLevel(destinationId, sourceId)
 		},
 	}
 
