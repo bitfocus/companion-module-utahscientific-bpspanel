@@ -9,7 +9,8 @@ import { UtahScientificAPI } from './api.js'
 
 export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig
-	router!: UtahScientificAPI
+	/** High-level module API (state, actions); not the raw RCP-3 transport. */
+	api!: UtahScientificAPI
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -25,7 +26,7 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 			return
 		}
 
-		this.router = new UtahScientificAPI(this.config, this)
+		this.api = new UtahScientificAPI(this.config, this)
 
 		// Start the connection process but don't await it here to prevent init from timing out
 		this.connectRouter().catch((e) => {
@@ -36,7 +37,7 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 
 	private async connectRouter(): Promise<void> {
 		try {
-			await this.router.connect()
+			await this.api.connect()
 			this.updateModuleComponents()
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
@@ -47,8 +48,8 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 
 	async destroy(): Promise<void> {
 		this.log('debug', 'destroy')
-		if (this.router) {
-			await this.router.disconnect()
+		if (this.api) {
+			await this.api.disconnect()
 		}
 	}
 
@@ -58,11 +59,11 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 		this.config = config
 
 		if (connectionChanged) {
-			if (this.router) {
-				await this.router.disconnect()
+			if (this.api) {
+				await this.api.disconnect()
 			}
 			this.updateStatus(InstanceStatus.Connecting)
-			this.router = new UtahScientificAPI(this.config, this)
+			this.api = new UtahScientificAPI(this.config, this)
 			this.connectRouter().catch((e) => {
 				this.log('error', `Error reconnecting with new config: ${e}`)
 				this.updateStatus(InstanceStatus.ConnectionFailure)

@@ -110,14 +110,17 @@ export class RCP3Connection extends EventEmitter {
 			}
 
 			const payload = this.buffer.subarray(HEADER_SIZE, totalSize)
-			this.buffer = this.buffer.subarray(totalSize)
 
-			// Validate checksum
 			const calculatedChecksum = calculateChecksum(payload)
 			if (calculatedChecksum !== checksum) {
 				this.log(`Checksum mismatch: expected 0x${checksum.toString(16)}, got 0x${calculatedChecksum.toString(16)}`)
-				continue
+				// Length field may be wrong if we were out of sync; discard queued data and surface error.
+				this.buffer = Buffer.alloc(0)
+				this.emit('error', new Error('RCP-3 checksum mismatch'))
+				break
 			}
+
+			this.buffer = this.buffer.subarray(totalSize)
 
 			// Auto-respond to ping requests
 			if (command === CMD_PING) {

@@ -50,7 +50,10 @@ export const HEADER_SIZE = 6
 // Per-destination data sizes in responses
 export const GET_MATRIX_ENTRY_SIZE = 64 // 2 bytes per source * 32 levels
 export const GET_LOCK_ENTRY_SIZE = 72 // lockType(4) + level(4) + 32 * panel(2)
-export const GET_LIST_ENTRY_SIZE = 96
+export const GET_LIST_ENTRY_SIZE = 120
+
+/** All 32 level bits (RCP-3 take / disconnect / lock payloads), independent of module level config. */
+export const RCP3_ALL_LEVELS_MASK = 0xffffffff
 
 // --- Lock Types ---
 export enum LockType {

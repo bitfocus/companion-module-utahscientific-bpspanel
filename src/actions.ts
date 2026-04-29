@@ -1,7 +1,7 @@
 import type { UtahScientificInstance } from './main.js'
 
 export function UpdateActions(self: UtahScientificInstance): void {
-	const levelChoices = self.router.state.levels
+	const levelChoices = self.api.state.levels
 
 	self.setActionDefinitions({
 		select_level: {
@@ -17,7 +17,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 			],
 			callback: (action) => {
 				const levels = action.options.level as number[]
-				self.router.selectLevels(levels)
+				self.api.selectLevels(levels)
 			},
 		},
 		deselect_level: {
@@ -33,7 +33,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 			],
 			callback: (action) => {
 				const levels = action.options.level as number[]
-				self.router.deselectLevels(levels)
+				self.api.deselectLevels(levels)
 			},
 		},
 		toggle_level: {
@@ -49,7 +49,7 @@ export function UpdateActions(self: UtahScientificInstance): void {
 			],
 			callback: (action) => {
 				const levels = action.options.level as number[]
-				self.router.toggleLevels(levels)
+				self.api.toggleLevels(levels)
 			},
 		},
 		select_source_name: {
@@ -59,8 +59,8 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					type: 'dropdown',
 					label: 'Source',
 					id: 'source',
-					default: self.router.state.sourceNames[0]?.id,
-					choices: self.router.state.sourceNames,
+					default: self.api.state.sourceNames[0]?.id,
+					choices: self.api.state.sourceNames,
 				},
 				{
 					type: 'checkbox',
@@ -77,11 +77,15 @@ export function UpdateActions(self: UtahScientificInstance): void {
 						? parseInt(action.options.source, 10)
 						: Number(action.options.source)
 				if (!isNaN(sourceId)) {
-					self.router.selectSource(sourceId)
+					self.api.selectSource(sourceId)
 					if (action.options.take) {
-						if (self.router.state.selectedDestination >= 0) {
-							const levelMask = self.router.buildLevelMask()
-							await self.router.take(sourceId, self.router.state.selectedDestination, levelMask)
+						if (self.api.state.selectedDestination >= 0) {
+							const levelMask = self.api.buildLevelMask()
+							if (levelMask === 0) {
+								self.log('warn', 'No levels selected for take; enable at least one level')
+								return
+							}
+							await self.api.take(sourceId, self.api.state.selectedDestination, levelMask)
 						} else {
 							self.log('warn', 'Destination not selected')
 						}
@@ -96,15 +100,15 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					type: 'dropdown',
 					label: 'Destination',
 					id: 'dest',
-					default: self.router.state.destinationNames[0]?.id,
-					choices: self.router.state.destinationNames,
+					default: self.api.state.destinationNames[0]?.id,
+					choices: self.api.state.destinationNames,
 				},
 			],
 			callback: async (action) => {
 				const destId =
 					typeof action.options.dest === 'string' ? parseInt(action.options.dest, 10) : Number(action.options.dest)
 				if (!isNaN(destId)) {
-					self.router.selectDestination(destId)
+					self.api.selectDestination(destId)
 				}
 			},
 		},
@@ -112,11 +116,15 @@ export function UpdateActions(self: UtahScientificInstance): void {
 			name: 'Take',
 			options: [],
 			callback: async () => {
-				const source = self.router.state.selectedSource
-				const destination = self.router.state.selectedDestination
+				const source = self.api.state.selectedSource
+				const destination = self.api.state.selectedDestination
 				if (source >= 0 && destination >= 0) {
-					const levelMask = self.router.buildLevelMask()
-					return await self.router.take(source, destination, levelMask)
+					const levelMask = self.api.buildLevelMask()
+					if (levelMask === 0) {
+						self.log('warn', 'No levels selected for take; enable at least one level')
+						return
+					}
+					return await self.api.take(source, destination, levelMask)
 				} else {
 					self.log('warn', 'Source or destination not selected')
 				}
@@ -129,15 +137,15 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					type: 'dropdown',
 					label: 'Source',
 					id: 'source',
-					default: self.router.state.sourceNames[0]?.id,
-					choices: self.router.state.sourceNames,
+					default: self.api.state.sourceNames[0]?.id,
+					choices: self.api.state.sourceNames,
 				},
 				{
 					type: 'dropdown',
 					label: 'Destination',
 					id: 'destination',
-					default: self.router.state.destinationNames[0]?.id,
-					choices: self.router.state.destinationNames,
+					default: self.api.state.destinationNames[0]?.id,
+					choices: self.api.state.destinationNames,
 				},
 				{
 					type: 'dropdown',
@@ -167,19 +175,14 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					typeof action.options.destination === 'string'
 						? parseInt(action.options.destination, 10)
 						: Number(action.options.destination)
-				let mask = 0
-				if (action.options.mode === 'all') {
-					for (const level of self.router.state.levels) {
-						mask |= 1 << (level.id - 1)
-					}
-				} else {
-					const selectedLevelIds = action.options.levels as number[]
-					for (const id of selectedLevelIds) {
-						mask |= 1 << (id - 1)
-					}
+				const mode = action.options.mode === 'selected' ? 'selected' : 'all'
+				const mask = self.api.buildLevelMaskForRoute(mode, (action.options.levels as number[]) ?? [])
+				if (mask === 0) {
+					self.log('warn', 'No levels in route; pick "All levels" or select at least one level')
+					return
 				}
 				if (!isNaN(sourceId) && !isNaN(destId)) {
-					return await self.router.take(sourceId, destId, mask)
+					return await self.api.take(sourceId, destId, mask)
 				}
 			},
 		},
@@ -190,8 +193,8 @@ export function UpdateActions(self: UtahScientificInstance): void {
 					type: 'dropdown',
 					label: 'Destination',
 					id: 'destination',
-					default: self.router.state.destinationNames[0]?.id,
-					choices: self.router.state.destinationNames,
+					default: self.api.state.destinationNames[0]?.id,
+					choices: self.api.state.destinationNames,
 				},
 				{
 					type: 'dropdown',
@@ -213,11 +216,11 @@ export function UpdateActions(self: UtahScientificInstance): void {
 				const lock = action.options.lock
 				if (!isNaN(destId)) {
 					if (lock === 'toggle') {
-						const lockState = self.router.state.locks[destId - 1]
+						const lockState = self.api.state.locks[destId]
 						if (lockState === undefined) return
-						return await self.router.setLock(destId, !lockState)
+						return await self.api.setLock(destId, !lockState)
 					} else {
-						return await self.router.setLock(destId, lock === 'lock')
+						return await self.api.setLock(destId, lock === 'lock')
 					}
 				}
 			},

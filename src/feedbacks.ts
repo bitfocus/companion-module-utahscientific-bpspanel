@@ -3,7 +3,7 @@ import type { UtahScientificInstance } from './main.js'
 
 export function UpdateFeedbacks(self: UtahScientificInstance): void {
 	const feedbacks: CompanionFeedbackDefinitions = {}
-	const levelChoices = self.router.state.levels
+	const levelChoices = self.api.state.levels
 
 	feedbacks['selected_level'] = {
 		type: 'boolean',
@@ -26,7 +26,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 			const feedbackLevels = feedback.options.level as number[]
 			if (feedbackLevels.length === 0) return false
 			for (const levelId of feedbackLevels) {
-				const level = self.router.state.selectedLevels.find((l) => l.id === levelId)
+				const level = self.api.state.selectedLevels.find((l) => l.id === levelId)
 				if (!level || !level.enabled) return false
 			}
 			return true
@@ -46,14 +46,14 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				type: 'dropdown',
 				label: 'Destination',
 				id: 'dest',
-				default: self.router.state.destinationNames[0]?.id,
-				choices: self.router.state.destinationNames,
+				default: self.api.state.destinationNames[0]?.id,
+				choices: self.api.state.destinationNames,
 			},
 		],
 		callback: (feedback) => {
 			const destId =
 				typeof feedback.options.dest === 'string' ? parseInt(feedback.options.dest, 10) : Number(feedback.options.dest)
-			return self.router.state.selectedDestination === destId
+			return self.api.state.selectedDestination === destId
 		},
 	}
 
@@ -70,8 +70,8 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				type: 'dropdown',
 				label: 'Source',
 				id: 'source',
-				default: self.router.state.sourceNames[0]?.id,
-				choices: self.router.state.sourceNames,
+				default: self.api.state.sourceNames[0]?.id,
+				choices: self.api.state.sourceNames,
 			},
 		],
 		callback: (feedback) => {
@@ -79,7 +79,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				typeof feedback.options.source === 'string'
 					? parseInt(feedback.options.source, 10)
 					: Number(feedback.options.source)
-			return self.router.state.selectedSource === sourceId
+			return self.api.state.selectedSource === sourceId
 		},
 	}
 
@@ -96,12 +96,12 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				type: 'dropdown',
 				label: 'Source',
 				id: 'source',
-				default: self.router.state.sourceNames[0]?.id,
-				choices: self.router.state.sourceNames,
+				default: self.api.state.sourceNames[0]?.id,
+				choices: self.api.state.sourceNames,
 			},
 		],
 		callback: (feedback) => {
-			const selectedDestination = self.router.state.selectedDestination
+			const selectedDestination = self.api.state.selectedDestination
 			if (selectedDestination < 0) return false
 
 			const sourceId =
@@ -109,7 +109,7 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 					? parseInt(feedback.options.source, 10)
 					: Number(feedback.options.source)
 
-			return self.router.hasSourceRoutedToDestOnAnySelectedLevel(selectedDestination, sourceId)
+			return self.api.hasSourceRoutedToDestOnAnySelectedLevel(selectedDestination, sourceId)
 		},
 	}
 
@@ -125,14 +125,14 @@ export function UpdateFeedbacks(self: UtahScientificInstance): void {
 				type: 'dropdown',
 				label: 'Destination',
 				id: 'dest',
-				default: self.router.state.destinationNames[0]?.id,
-				choices: self.router.state.destinationNames,
+				default: self.api.state.destinationNames[0]?.id,
+				choices: self.api.state.destinationNames,
 			},
 		],
 		callback: (feedback) => {
 			const destId =
 				typeof feedback.options.dest === 'string' ? parseInt(feedback.options.dest, 10) : Number(feedback.options.dest)
-			const lockState = self.router.state.locks[destId]
+			const lockState = self.api.state.locks[destId]
 			return !!lockState
 		},
 	}

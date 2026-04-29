@@ -324,6 +324,11 @@ export class RCP3Router extends EventEmitter {
 
 		// Each destination has 64 bytes of data (2 bytes per level * 32 levels)
 		const dataOffset = 4 // skip startDest(2) + count(2)
+		const expectedLen = dataOffset + count * GET_MATRIX_ENTRY_SIZE
+		if (payload.length < expectedLen) {
+			return
+		}
+
 		for (let i = 0; i < count; i++) {
 			const entryOffset = dataOffset + i * GET_MATRIX_ENTRY_SIZE
 			const destId = startDest + i
@@ -360,17 +365,20 @@ export class RCP3Router extends EventEmitter {
 		const results: LockStatus[] = []
 
 		const dataOffset = 4 // skip startDest(2) + count(2)
+		const expectedLen = dataOffset + count * GET_LOCK_ENTRY_SIZE
+		if (payload.length < expectedLen) {
+			return
+		}
+
 		for (let i = 0; i < count; i++) {
 			const entryOffset = dataOffset + i * GET_LOCK_ENTRY_SIZE
-			if (entryOffset + 10 <= payload.length) {
-				const lockTypeMask = payload.readUInt32BE(entryOffset)
-				const panelId = payload.readUInt16BE(entryOffset + 8)
-				results.push({
-					isLocked: lockTypeMask !== 0,
-					type: lockTypeMask !== 0 ? LockType.Lock : LockType.Unlock,
-					panelId,
-				})
-			}
+			const lockTypeMask = payload.readUInt32BE(entryOffset)
+			const panelId = payload.readUInt16BE(entryOffset + 8)
+			results.push({
+				isLocked: lockTypeMask !== 0,
+				type: lockTypeMask !== 0 ? LockType.Lock : LockType.Unlock,
+				panelId,
+			})
 		}
 
 		clearTimeout(this.pendingLockRequest.timer)

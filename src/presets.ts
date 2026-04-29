@@ -4,7 +4,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 	const presets: CompanionPresetDefinitions = {}
 
 	// Level selection presets
-	for (const level of self.router.state.levels) {
+	for (const level of self.api.state.levels) {
 		presets[`level_${level.id}`] = {
 			category: 'Levels',
 			name: `Level ${level.id}`,
@@ -44,7 +44,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 		}
 	}
 
-	for (const i of self.router.state.sourceNames) {
+	for (const i of self.api.state.sourceNames) {
 		const sourceName = i.label
 		const sourceId = i.id
 		presets[`source_${sourceId}`] = {
@@ -168,7 +168,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 		],
 		feedbacks: [],
 	}
-	for (const i of self.router.state.destinationNames) {
+	for (const i of self.api.state.destinationNames) {
 		const destinationName = i.label
 		const destinationId = i.id
 		const destinationVariable = '$(bpspanel:destination_' + destinationId + '_name)'

@@ -1,6 +1,6 @@
 {
 	"name": "utahscientific-bpspanel",
-	"version": "3.0.0-beta5",
+	"version": "3.0.0-beta6",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
@@ -23,14 +23,14 @@
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.7.1",
-		"@types/node": "^24.12.0",
+		"@types/node": "^24.12.2",
 		"eslint": "^9.39.4",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.4.0",
-		"prettier": "^3.8.1",
+		"prettier": "^3.8.3",
 		"rimraf": "^6.1.3",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.57.1"
+		"typescript-eslint": "^8.59.0"
 	},
 	"engines": {
 		"node": "^22.12"
