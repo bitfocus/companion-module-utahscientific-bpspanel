@@ -1,9 +1,9 @@
 {
 	"id": "utahscientific-bpspanel",
 	"name": "utahscientific-bpspanel",
-	"shortname": "bpspanel",
-	"description": "Companion module for Utah scientific Button per source",
-	"version": "2.0.0",
+	"shortname": "utah-scientific",
+	"description": "Connection for Utah Scientific routers and controllers.",
+	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-utahscientific-bpspanel.git",
 	"bugs": "https://github.com/bitfocus/companion-module-utahscientific-bpspanel/issues",
@@ -11,20 +11,20 @@
 		{
 			"name": "UTSCI",
 			"email": "veaton@utsci.com"
+		},
+		{
+			"name": "Bitfocus AS",
+			"email": "connections@bitfocus.io"
 		}
 	],
-	"legacyIds": [
-		"bps"
-	],
+	"legacyIds": ["bps"],
 	"runtime": {
-		"type": "node18",
+		"type": "node22",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
-		"entrypoint": "..\\index.js"
+		"entrypoint": "../dist/main.js"
 	},
 	"manufacturer": "Utah Scientific",
-	"products": [
-		"BPS"
-	],
-	"keywords": []
+	"products": ["Routers", "Controllers"],
+	"keywords": ["Router", "BPS", "BPS Panel", "RCP3", "SCP4"]
 }
