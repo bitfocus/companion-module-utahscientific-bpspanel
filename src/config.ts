@@ -35,7 +35,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'levels',
 			label: 'Number of Levels',
 			width: 6,
-			default: 1,
+			default: 8,
 			min: 1,
 			max: 32,
 			step: 1,

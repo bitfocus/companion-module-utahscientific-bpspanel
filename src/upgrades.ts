@@ -15,7 +15,7 @@ export const UpgradeScripts: CompanionStaticUpgradeScript<ModuleConfig>[] = [
 		}
 
 		if (props.config && (props.config as ModuleConfig).levels === undefined) {
-			;(props.config as ModuleConfig).levels = 4
+			;(props.config as ModuleConfig).levels = 8
 			changes.updatedConfig = props.config
 		}
 
