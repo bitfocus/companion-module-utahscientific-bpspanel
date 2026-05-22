@@ -52,7 +52,14 @@ export class RCP3Router extends EventEmitter {
 				receivedCount: number
 		  })
 		| null = null
-	private pendingLockRequest: Deferred<{ startDest: number; locks: LockStatus[] }> | null = null
+	private pendingLockRequest:
+		| (Deferred<{ startDest: number; locks: LockStatus[] }> & {
+				expectedCount: number
+				startDest: number
+				results: LockStatus[]
+				receivedCount: number
+		  })
+		| null = null
 	private pendingSourceNames: Deferred<Map<number, string>> | null = null
 	private pendingDestNames: Deferred<Map<number, string>> | null = null
 
@@ -198,7 +205,15 @@ export class RCP3Router extends EventEmitter {
 				reject(new Error('GetLock request timeout'))
 			}, 5000)
 
-			this.pendingLockRequest = { resolve, reject, timer }
+			this.pendingLockRequest = {
+				resolve,
+				reject,
+				timer,
+				expectedCount: count,
+				startDest: startOutput,
+				results: [],
+				receivedCount: 0,
+			}
 
 			const payload = Buffer.alloc(4)
 			payload.writeUInt16BE(startOutput, 0)
@@ -361,28 +376,36 @@ export class RCP3Router extends EventEmitter {
 
 		const startDest = payload.readUInt16BE(0)
 		const count = payload.readUInt16BE(2)
-		const locks: LockStatus[] = []
 
 		const dataOffset = 4 // skip startDest(2) + count(2)
 		const expectedLen = dataOffset + count * GET_LOCK_ENTRY_SIZE
-		if (payload.length < expectedLen) {
-			return
+		if (payload.length < expectedLen) return
+
+		// Save startDest from first packet
+		if (this.pendingLockRequest.receivedCount === 0) {
+			this.pendingLockRequest.startDest = startDest
 		}
 
 		for (let i = 0; i < count; i++) {
 			const entryOffset = dataOffset + i * GET_LOCK_ENTRY_SIZE
 			const lockTypeMask = payload.readUInt32BE(entryOffset)
 			const panelId = payload.readUInt16BE(entryOffset + 8)
-			locks.push({
+			this.pendingLockRequest.results.push({
 				isLocked: lockTypeMask !== 0,
 				type: lockTypeMask !== 0 ? LockType.Lock : LockType.Unlock,
 				panelId,
 			})
+			this.pendingLockRequest.receivedCount++
 		}
 
-		clearTimeout(this.pendingLockRequest.timer)
-		this.pendingLockRequest.resolve({ startDest, locks })
-		this.pendingLockRequest = null
+		if (this.pendingLockRequest.receivedCount >= this.pendingLockRequest.expectedCount) {
+			clearTimeout(this.pendingLockRequest.timer)
+			this.pendingLockRequest.resolve({
+				startDest: this.pendingLockRequest.startDest,
+				locks: this.pendingLockRequest.results,
+			})
+			this.pendingLockRequest = null
+		}
 	}
 
 	private handleSystemTake(payload: Buffer): void {
@@ -396,13 +419,13 @@ export class RCP3Router extends EventEmitter {
 	}
 
 	private handleSystemLock(payload: Buffer): void {
-		if (payload.length < 7) return
+		if (payload.length < 12) return
 
 		const panelId = payload.readUInt16BE(2)
 		const dest = payload.readUInt16BE(4)
-		const statusType = payload[6]
-
-		const isLocked = statusType !== 0x00
+		// Bytes 10-11 carry the lock-type mask: non-zero = locked, zero = unlocked.
+		// (payload[6] is 0x00 regardless of lock state — confirmed against hardware.)
+		const isLocked = payload.readUInt16BE(10) !== 0
 		const lockStatus: LockStatus = {
 			isLocked,
 			type: isLocked ? LockType.Lock : LockType.Unlock,

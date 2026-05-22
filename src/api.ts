@@ -374,14 +374,14 @@ export class UtahScientificAPI {
 		const status = lock ? LockType.Lock : LockType.Unlock
 		try {
 			await this.rcpRouter.setLock(destination, status)
-			const lockState = await this.rcpRouter.getLock(destination)
-			this.state.locks[destination] = lockState?.isLocked || false
+			// Optimistically update state; CMD_SYSTEM_LOCK unsolicited event will confirm the real state.
+			this.state.locks[destination] = lock
 			this.instance.checkFeedbacks('destination_locked')
 			this.instance.setVariableValues({
-				[`destination_${destination}_lock_state`]: this.state.locks[destination] ? 'Locked' : 'Unlocked',
+				[`destination_${destination}_lock_state`]: lock ? 'Locked' : 'Unlocked',
 			})
 		} catch (e) {
-			this.instance.log('warn', `Failed to set/fetch lock status: ${e}`)
+			this.instance.log('warn', `Failed to set lock: ${toErrorMessage(e)}`)
 		}
 	}
 
