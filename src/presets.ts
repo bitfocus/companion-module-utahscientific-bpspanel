@@ -53,7 +53,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 			type: 'button',
 			style: {
 				show_topbar: false,
-				text: '$(bpspanel:source_' + sourceId + '_name)',
+				text: '$(utah-scientific:source_' + sourceId + '_name)',
 				size: '14',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -101,7 +101,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 			type: 'button',
 			style: {
 				show_topbar: false,
-				text: '$(bpspanel:source_' + sourceId + '_name)',
+				text: '$(utah-scientific:source_' + sourceId + '_name)',
 				size: '14',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -171,7 +171,7 @@ export function UpdatePresets(self: UtahScientificInstance): void {
 	for (const i of self.api.state.destinationNames) {
 		const destinationName = i.label
 		const destinationId = i.id
-		const destinationVariable = '$(bpspanel:destination_' + destinationId + '_name)'
+		const destinationVariable = '$(utah-scientific:destination_' + destinationId + '_name)'
 		presets[`destination_${destinationId}`] = {
 			category: 'Destinations',
 			name: `Destination ${destinationName}`,
