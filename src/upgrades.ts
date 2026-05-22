@@ -22,7 +22,7 @@ export const UpgradeScripts: CompanionStaticUpgradeScript<ModuleConfig>[] = [
 		for (const action of props.actions) {
 			if (action.actionId === 'select_source_name') {
 				if (action.options.take === undefined) {
-					action.options.take = false
+					action.options.take = true
 					changes.updatedActions.push(action)
 				}
 			} else if (action.actionId === 'route') {
