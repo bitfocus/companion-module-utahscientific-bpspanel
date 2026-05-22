@@ -6,6 +6,7 @@ import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import { UtahScientificAPI } from './api.js'
+import { toErrorMessage } from './utils.js'
 
 export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig
@@ -41,8 +42,7 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 			await this.api.connect()
 			this.updateModuleComponents()
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : String(error)
-			this.log('error', `Failed to connect to router: ${errorMessage}`)
+			this.log('error', `Failed to connect to router: ${toErrorMessage(error)}`)
 			this.updateStatus(InstanceStatus.ConnectionFailure)
 		}
 	}

@@ -3,6 +3,7 @@ import { RCP3_ALL_LEVELS_MASK } from './rcp3/protocol.js'
 import { ModuleConfig } from './config.js'
 import { UtahScientificInstance } from './main.js'
 import { InstanceStatus } from '@companion-module/base'
+import { toErrorMessage } from './utils.js'
 
 export interface LevelChoice {
 	id: number
@@ -101,7 +102,7 @@ export class UtahScientificAPI {
 			this.startKeepAlive()
 		} catch (error) {
 			this.connected = false
-			const errorMessage = error instanceof Error ? error.message : String(error)
+			const errorMessage = toErrorMessage(error)
 			this.instance.log('error', `Connection failed: ${errorMessage}`)
 			this.instance.updateStatus(InstanceStatus.ConnectionFailure, errorMessage)
 			this.scheduleReconnect()
@@ -109,11 +110,9 @@ export class UtahScientificAPI {
 	}
 
 	private setupEventHandlers(): void {
-		// Ensure only one set of listeners exists per RCP-3 router instance
 		this.rcpRouter.removeAllListeners()
 
 		this.rcpRouter.on('status', (output, input, levelMask) => {
-			// Update routes for each level indicated by the bitmask
 			const destLevels = this.state.routes.get(output) ?? new Array(32).fill(-1)
 			for (let lvl = 0; lvl < this.state.numLevels; lvl++) {
 				if (levelMask & (1 << lvl)) {
@@ -122,28 +121,24 @@ export class UtahScientificAPI {
 			}
 			this.state.routes.set(output, destLevels)
 
-			// Update variables for each affected level
-			const sourceName =
-				input < 0 ? 'None' : (this.state.sourceNames.find((source) => source.id === input)?.label ?? 'Unknown')
 			const sourceIdValue = input < 0 ? 'None' : input
+			const varUpdates: Record<string, string | number> = {}
 			for (let lvl = 0; lvl < this.state.numLevels; lvl++) {
 				if (levelMask & (1 << lvl)) {
-					const levelNum = lvl + 1
-					this.instance.setVariableValues({
-						[`route_${output}_${levelNum}`]: sourceIdValue,
-					})
+					varUpdates[`route_${output}_${lvl + 1}`] = sourceIdValue
 				}
 			}
 
 			// Also update the legacy single-level variable (level 1)
 			if (levelMask & 1) {
-				this.instance.setVariableValues({
-					[`destination_${output}_source_id`]: sourceIdValue,
-					[`destination_${output}_source_name`]: sourceName,
-				})
+				const sourceName =
+					input < 0 ? 'None' : (this.state.sourceNames.find((source) => source.id === input)?.label ?? 'Unknown')
+				varUpdates[`destination_${output}_source_id`] = sourceIdValue
+				varUpdates[`destination_${output}_source_name`] = sourceName
 			}
 
-			this.instance.checkFeedbacks('source_dest_route', 'route_connected')
+			this.instance.setVariableValues(varUpdates)
+			this.instance.checkFeedbacks('source_dest_route', 'route_active')
 		})
 		this.rcpRouter.on('lock', (output, locked) => {
 			const isLocked = locked?.isLocked
@@ -158,7 +153,7 @@ export class UtahScientificAPI {
 			this.scheduleReconnect()
 		})
 		this.rcpRouter.on('error', (error: unknown) => {
-			const errorMessage = error instanceof Error ? error.message : String(error)
+			const errorMessage = toErrorMessage(error)
 			if (this.connected) {
 				this.instance.log('error', `Router error: ${errorMessage}`)
 			}
@@ -172,9 +167,6 @@ export class UtahScientificAPI {
 			this.connected = true
 			this.instance.log('info', 'Router connected')
 			this.instance.updateStatus(InstanceStatus.Ok)
-		})
-		this.rcpRouter.on('reconnect', () => {
-			this.instance.log('info', 'Router reconnected')
 		})
 	}
 
@@ -201,7 +193,7 @@ export class UtahScientificAPI {
 			try {
 				await this.rcpRouter.getRouterInfo()
 			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : String(error)
+				const errorMessage = toErrorMessage(error)
 				// Overlapping keep-alive ticks supersede the prior STATUS request; not a failure.
 				if (errorMessage === 'Superseded') return
 				this.instance.updateStatus(InstanceStatus.ConnectionFailure)

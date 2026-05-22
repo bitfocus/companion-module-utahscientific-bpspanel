@@ -321,7 +321,6 @@ export class RCP3Router extends EventEmitter {
 		const startDest = payload.readUInt16BE(0)
 		const count = payload.readUInt16BE(2)
 
-		// Each destination has 64 bytes of data (2 bytes per level * 32 levels)
 		const dataOffset = 4 // skip startDest(2) + count(2)
 		const expectedLen = dataOffset + count * GET_MATRIX_ENTRY_SIZE
 		if (payload.length < expectedLen) {

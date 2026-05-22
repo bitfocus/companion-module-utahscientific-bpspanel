@@ -46,9 +46,9 @@ export function UpdateVariableDefinitions(self: UtahScientificInstance): void {
 	}
 
 	// Source name variables (for sources not covered by destinations loop)
+	const destIds = new Set(destinations.map((d) => d.id))
 	for (const source of self.api.state.sourceNames) {
-		const exists = destinations.some((d) => d.id === source.id)
-		if (!exists) {
+		if (!destIds.has(source.id)) {
 			variables.push({ variableId: `source_${source.id}_name`, name: `Source ${source.id} - Label` })
 		}
 	}
