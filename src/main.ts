@@ -101,6 +101,7 @@ export class UtahScientificInstance extends InstanceBase<ModuleConfig> {
 		this.updateVariableDefinitions()
 		this.updateVariables()
 		this.updatePresets()
+		this.checkFeedbacks('destination_locked', 'route_active', 'source_dest_route')
 	}
 }
 
