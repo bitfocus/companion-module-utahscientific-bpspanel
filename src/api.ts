@@ -248,10 +248,10 @@ export class UtahScientificAPI {
 				this.state.locks[destId] = isLocked
 				this.instance.setVariableValues({ [`destination_${destId}_lock_state`]: isLocked ? 'Locked' : 'Unlocked' })
 			}
+			this.instance.checkFeedbacks('destination_locked')
 		} catch (e) {
 			this.instance.log('warn', `Failed to fetch all locks: ${e}`)
 		}
-		this.instance.checkFeedbacks('destination_locked')
 		return this.state.locks
 	}
 
